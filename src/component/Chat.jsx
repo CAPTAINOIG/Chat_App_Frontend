@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
-// import backgroundImage from '../assets/image/backgroundImage.jpg';
-import backgroundImage from '../assets/image/imaged6.jpg';
 
 const baseUrl = "https://chat-app-backend-seuk.onrender.com"
 
@@ -113,7 +111,8 @@ const Chat = () => {
     };
 
     return (
-        <div id='background' className="flex flex-col md:flex-row h-screen" style={{ backgroundImage: `url(${backgroundImage})`, backgroundPosition: 'center', height: '100vh', position: 'relative', backgroundRepeat: 'no-repeat', backgroundSize: 'cover' }}>
+      <div className='background'>
+        <div className="flex flex-col md:flex-row h-screen">
             <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto">
                 <h2 className="text-xl font-bold mb-4 text-gray-900 bg-gray-100 border-t rounded-sm p-1 border-gray-300">Users</h2>
                 <div className="space-y-2">
@@ -168,6 +167,7 @@ const Chat = () => {
                     </button>
                 </form>
             </div>
+        </div>
         </div>
     );
 };
