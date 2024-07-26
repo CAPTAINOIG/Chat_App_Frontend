@@ -113,7 +113,7 @@ const Chat = () => {
     return (
         <div id='background' className="flex flex-col md:flex-row h-screen">
             <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto">
-                <h2 className="text-xl font-bold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300">Users</h2>
+                <h2 className="text-xl font-bold mb-4 text-gray-900 bg-gray-100 border-t rounded-sm p-1 border-gray-300">Users</h2>
                 <div className="space-y-2">
                     {users.map((item, i) => (
                         <div
