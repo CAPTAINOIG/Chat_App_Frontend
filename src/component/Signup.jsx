@@ -40,8 +40,9 @@ const Signup = () => {
         onSubmit: async (values) => {
             setLoading(true);
             setError(null);
+            // http://localhost:3000/user/signup
             try {
-                const res = await axios.post('http://localhost:3000/user/signup', values);
+                const res = await axios.post('https://chat-app-backend-seuk.onrender.com/user/signup', values);
                 console.log(res);
                 setLoading(false);
                 toast.success("Sign up Successful!");

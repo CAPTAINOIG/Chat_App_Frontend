@@ -15,7 +15,7 @@ const Dashboard = () => {
 
     const navigate = useNavigate()
 
-    let endpoint = 'http://localhost:3000/user/dashboard'
+    let endpoint = 'https://chat-app-backend-seuk.onrender.com/user/dashboard'
     useEffect(() => {
         if(!token){
             navigate('/signin')

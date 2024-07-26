@@ -39,7 +39,7 @@ const Signin = () => {
             setLoading(true);
             setError(null);
             try {
-                const res = await axios.post('http://localhost:3000/user/signin', values);
+                const res = await axios.post('https://chat-app-backend-seuk.onrender.com/user/signin', values);
                 console.log(res);
                 setLoading(false);
                 localStorage.setItem('userToken', (res.data.token))
