@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
-const baseUrl = 'http://localhost:3000';
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com"
+const baseUrl = "http://localhost:3000"
+
 
 const Chat = () => {
     const username = localStorage.getItem('username');
@@ -14,29 +16,37 @@ const Chat = () => {
     const [socket, setSocket] = useState(null);
     const [receiverId, setReceiverId] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
+    const [onlineUsers, setOnlineUsers] = useState(null)
 
     const time = new Date().toLocaleTimeString();
-    // console.log(time);
+    console.log(time);
 
     useEffect(() => {
         const initialSocket = io(baseUrl);
         setSocket(initialSocket);
-        getAllUsers(initialSocket);
+        initialSocket.emit('user-online', userId)
+        // Call the getAllUsers function here
+        getAllUsers(initialSocket); 
+        const lastChattedUserId = localStorage.getItem('lastChattedUserId');
+        if (lastChattedUserId) {
+            setReceiverId(lastChattedUserId);
+            fetchMessages(lastChattedUserId);
+            initialSocket.emit('getUsers', { token: localStorage.getItem('userToken') });
+            initialSocket.on('getUsers', (data) => {
+                if (data.status) {
+                    const user = data.users.find(u => u._id === lastChattedUserId);
+                    setSelectedUser(user);
+                }
+            });
+        }
+        initialSocket.on('update-online-users', (onlineUsersIds) => {
+            console.log(onlineUsersIds);
+            setOnlineUsers(onlineUsersIds);
+        });
 
-          // Fetch last chatted user messages
-          const lastChattedUserId = localStorage.getItem('lastChattedUserId');
-          if (lastChattedUserId) {
-              setReceiverId(lastChattedUserId);
-              fetchMessages(lastChattedUserId);
-              // Find and set the selected user from the stored users list
-              initialSocket.emit('getUsers', { token: localStorage.getItem('userToken') });
-              initialSocket.on('getUsers', (data) => {
-                  if (data.status) {
-                      const user = data.users.find(u => u._id === lastChattedUserId);
-                      setSelectedUser(user);
-                  }
-              });
-          }
+        return () => {
+            initialSocket.disconnect();
+        };
     }, []);
 
     useEffect(() => {
@@ -58,8 +68,9 @@ const Chat = () => {
 
         return () => {
             socket.off('recievemessage');
+            socket.off('getUsers');
         };
-    }, [socket]);
+    }, [socket, userId]);
 
     const getAllUsers = async (socket) => {
         if (!socket) return;
@@ -102,7 +113,6 @@ const Chat = () => {
     };
 
     const handleUserClick = (user) => {
-        console.log(user);
         setReceiverId(user._id);
         setSelectedUser(user);
         localStorage.setItem('lastChattedUserId', user._id);
@@ -110,44 +120,50 @@ const Chat = () => {
     };
 
     return (
-        <div className="flex h-screen">
-            <div className="w-1/4 bg-gray-100 p-4 border-r border-gray-300">
-                <h2 className="text-xl font-bold mb-4">Users</h2>
+      <div className='background'>
+        <div className="flex flex-col md:flex-row h-screen">
+            <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto">
+                <h2 className="text-xl font-bold mb-4 text-gray-900 bg-gray-100 border-t rounded-sm p-1 border-gray-300">Users</h2>
                 <div className="space-y-2">
                     {users.map((item, i) => (
                         <div
                             key={i}
-                            className="p-2 cursor-pointer hover:bg-gray-200 rounded"
+                            className="p-2 cursor-pointer hover:bg-gray-200 rounded bg-gray-100 bg-opacity-50"
                             onClick={() => handleUserClick(item)}
                         >
                             {item.username}
+                            <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-500'}`}>
+                                ({item.online ? 'Online' : 'Offline'})
+                            </span>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col">
-                <div className="flex-1 p-4 bg-white">
+            <div className="flex-1 flex flex-col  bg-opacity-80 overflow-y-auto">
+                <div className="flex-1 p-4">
                     {selectedUser ? (
                         <>
-                            <h3 className="text-xl font-semibold mb-4">Chatting with {selectedUser.username}</h3>
+                            <h3 className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300">Chatting with {selectedUser.username}</h3>
                             <div className="space-y-2">
                                 {messages.map((msg, index) => (
                                     <div
                                         key={index}
-                                        className={`p-2 rounded ${msg.senderId === userId ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}`}
+                                        className={`flex ${msg.senderId === userId ? 'justify-end' : 'justify-start'} p-2`}
                                     >
-                                        <strong>{msg.senderId}:</strong> {msg.content} <em className="text-sm text-gray-500">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : <span>{time}</span>}</em>
+                                        <div className={`p-2 rounded ${msg.senderId === userId ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}`}>
+                                            <strong>{msg.senderId === userId ? 'You' : selectedUser.username}:</strong> {msg.content} <em className="text-sm text-gray-500">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : <span>{time}</span>}</em>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </>
                     ) : (
-                        <p>Select a user to start chatting.</p>
+                        <p className="text-gray-700 bg-gray-100 border-t border-gray-300">Select a user to start chatting.</p>
                     )}
                 </div>
 
-                <form className="p-4 bg-gray-100 border-t border-gray-300" onSubmit={handleSubmit}>
+                <form className="p-4 bg-gray-500 border-t border-gray-300" onSubmit={handleSubmit}>
                     <input
                         type="text"
                         value={message}
@@ -163,6 +179,7 @@ const Chat = () => {
                     </button>
                 </form>
             </div>
+        </div>
         </div>
     );
 };

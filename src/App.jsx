@@ -5,6 +5,7 @@ import Signup from './component/Signup'
 import Signin from './component/Signin'
 import Dashboard from './component/Dashboard'
 import Chat from './component/Chat'
+import Loader from './component/Loader'
 
 function App() {
   
@@ -12,6 +13,7 @@ function App() {
   return (
     <div className='font-[Mirza]'>
       <Routes>
+      <Route path='/' element={<Loader/>}/>
         <Route path='/signup' element={<Signup/>}/>
         <Route path='/signin' element={<Signin/>}/>
         <Route path='/dashboard' element={<Dashboard/>}/>

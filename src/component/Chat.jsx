@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
-const baseUrl = "https://chat-app-backend-seuk.onrender.com"
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com"
+const baseUrl = "http://localhost:3000"
+
 
 const Chat = () => {
     const username = localStorage.getItem('username');
@@ -14,6 +16,7 @@ const Chat = () => {
     const [socket, setSocket] = useState(null);
     const [receiverId, setReceiverId] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
+    const [onlineUsers, setOnlineUsers] = useState(null)
 
     const time = new Date().toLocaleTimeString();
     console.log(time);
@@ -21,6 +24,8 @@ const Chat = () => {
     useEffect(() => {
         const initialSocket = io(baseUrl);
         setSocket(initialSocket);
+        console.log('Emitting user-online event');
+        initialSocket.emit('user-online', userId)
         // Call the getAllUsers function here
         getAllUsers(initialSocket); 
         const lastChattedUserId = localStorage.getItem('lastChattedUserId');
@@ -35,6 +40,11 @@ const Chat = () => {
                 }
             });
         }
+        initialSocket.on('update-online-users', (onlineUsersIds) => {
+            console.log(onlineUsersIds);
+            setOnlineUsers(onlineUsersIds);
+        });
+
         return () => {
             initialSocket.disconnect();
         };
@@ -47,21 +57,29 @@ const Chat = () => {
             setMessages((prevMessages) => [...prevMessages, msg]);
         });
 
+        
         socket.on('getUsers', (data) => {
-            console.log('Connected with Socket ID:', socket.id);
             if (data.status) {
-                setUsers((prev) => {
-                    const users = data.users.filter((val) => val._id !== userId);
-                    return users;
-                });
+                const filteredUsers = data.users.filter((user)=> user._id !== userId)
+                const updatedUsers = filteredUsers.map((user => ({
+                    ...user,
+                    online: onlineUsers.includes(user._id)
+                })));
+                setUsers(updatedUsers)
             }
         });
+    
 
         return () => {
             socket.off('recievemessage');
             socket.off('getUsers');
         };
-    }, [socket, userId]);
+    }, [socket, onlineUsers, userId]);
+
+    //     return () => {
+    //         socket.off('recievemessage');
+    //     };
+    // }, [socket, userId]);
 
     const getAllUsers = async (socket) => {
         if (!socket) return;
@@ -123,6 +141,9 @@ const Chat = () => {
                             onClick={() => handleUserClick(item)}
                         >
                             {item.username}
+                            <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-500'}`}>
+                                ({item.online ? 'Online' : 'Offline'})
+                            </span>
                         </div>
                     ))}
                 </div>
