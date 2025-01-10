@@ -2,6 +2,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const baseUrl = 'https://chat-app-backend-seuk.onrender.com';
 // const baseUrl = "http://localhost:3000";
@@ -30,18 +31,15 @@ const Dashboard = () => {
             "Accept": 'application/json'
           },
         });
-        // Assuming the response data structure has `userDetail.username`
         localStorage.setItem('username', response.data.userDetail.username);
 
       } catch (err) {
-        // Handle token expiration or other errors
-        if (err.response && err.response.status === 401) { // Unauthorized status code
+        if (err.response && err.response.status === 401) { 
           setLoader(false);
           toast.error("Token has expired or is invalid");
           localStorage.removeItem('userToken');
           navigate('/signin');
         } else {
-          // Handle other errors
           console.error("Error fetching data:", err);
           toast.error("An error occurred. Please try again later.");
         }
@@ -58,7 +56,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-800">
       <div className="bg-white p-3 hover:bg-blue-200 hover:text-blue-800 cursor-pointer text-blue-800 rounded-lg shadow-md" onClick={handleChat}>
-        <Link to={`/chat/${username}`}>Chat with User</Link>
+        <p>Chat with User</p>
       </div>
       <ToastContainer />
     </div>

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
-const baseUrl = "https://chat-app-backend-seuk.onrender.com"
-// const baseUrl = "http://localhost:3000"
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com"
+const baseUrl = "http://localhost:3000"
 
 
 const Chat = () => {
@@ -19,70 +19,77 @@ const Chat = () => {
     const [onlineUsers, setOnlineUsers] = useState(null)
 
     const time = new Date().toLocaleTimeString();
-    console.log(time);
 
+    // step 1: fetch all users, this is done once on page load and i get the last chatted user id from local storage and fetch the messages for that user.
     useEffect(() => {
         const initialSocket = io(baseUrl);
+        // console.log(initialSocket);
         setSocket(initialSocket);
-        console.log('Emitting user-online event');
         initialSocket.emit('user-online', userId)
+
         // Call the getAllUsers function here
         getAllUsers(initialSocket); 
+
         const lastChattedUserId = localStorage.getItem('lastChattedUserId');
         if (lastChattedUserId) {
             setReceiverId(lastChattedUserId);
             fetchMessages(lastChattedUserId);
             initialSocket.emit('getUsers', { token: localStorage.getItem('userToken') });
+            
             initialSocket.on('getUsers', (data) => {
                 if (data.status) {
                     const user = data.users.find(u => u._id === lastChattedUserId);
                     setSelectedUser(user);
                 }
             });
+            fetchOnlineUsers(initialSocket);
         }
-        initialSocket.on('update-online-users', (onlineUsersIds) => {
-            console.log(onlineUsersIds);
-            setOnlineUsers(onlineUsersIds);
-        });
+
 
         return () => {
             initialSocket.disconnect();
         };
     }, []);
+    
+    // step 4 : listen to online users. endpoint to get online users
+    const fetchOnlineUsers = async (initialSocket) => {
+    initialSocket.on('update-online-users', (onlineUsersIds) => {
+        setOnlineUsers(onlineUsersIds);
+    });
+}
 
+    // step 3: listen to messages or receive messages from one user to the owner of acct.
     useEffect(() => {
         if (!socket) return;
-
         socket.on('recievemessage', (msg) => {
             setMessages((prevMessages) => [...prevMessages, msg]);
         });
 
-        
+        // step 2: listen to users or get all users from the server
         socket.on('getUsers', (data) => {
             if (data.status) {
+                // filter out the user who is chatting with i.e d owner of acct.
                 const filteredUsers = data.users.filter((user)=> user._id !== userId)
+                // map the filtered users and add online status
                 const updatedUsers = filteredUsers.map((user => ({
                     ...user,
+                   // add online status
                     online: onlineUsers.includes(user._id)
                 })));
                 setUsers(updatedUsers)
             }
         });
-    
-
         return () => {
             socket.off('recievemessage');
             socket.off('getUsers');
         };
     }, [socket, onlineUsers, userId]);
 
-    //     return () => {
-    //         socket.off('recievemessage');
-    //     };
-    // }, [socket, userId]);
 
+    // This checks for user token and see if the user is connected through socket
     const getAllUsers = async (socket) => {
         if (!socket) return;
+
         try {
             const token = localStorage.getItem('userToken');
             socket.emit("getUsers", { token });
@@ -91,10 +98,10 @@ const Chat = () => {
         }
     };
 
-    const fetchMessages = async (senderId) => {
+    const fetchMessages = async () => {
         setMessages([]);
         try {
-            const response = await axios.get(`${baseUrl}/user/getMessage?userId=${userId}&receiverId=${senderId}`);
+            const response = await axios.get(`${baseUrl}/user/getMessage?userId=${userId}&receiverId=${receiverId}`);
             console.log('Fetched messages:', response.data);
             if (response.data.status) {
                 setMessages(response.data.messages);
@@ -106,11 +113,10 @@ const Chat = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (message && receiverId) {
             try {
-                socket.emit('chat message', { senderId: userId, receiverId, content: message, users: [receiverId, userId] });
-                setMessages((prevMessages) => [
+              socket.emit('chat message', { senderId: userId, receiverId, content: message, users: [receiverId, userId] });
+                 setMessages((prevMessages) => [
                     ...prevMessages,
                     { senderId: userId, receiverId, content: message, timestamp: new Date() }
                 ]);
@@ -122,6 +128,7 @@ const Chat = () => {
     };
 
     const handleUserClick = (user) => {
+        console.log(user)
         setReceiverId(user._id);
         setSelectedUser(user);
         localStorage.setItem('lastChattedUserId', user._id);

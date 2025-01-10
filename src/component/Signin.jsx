@@ -46,14 +46,12 @@ const Signin = () => {
             try {
                 const res = await axios.post(`${baseUrl}/user/signin`, values);
                 // console.log(res);
-                setLoading(false);
                 localStorage.setItem('userToken', (res.data.token))
                 localStorage.setItem('userId', res.data.user._id)
                 localStorage.setItem('username', (res.data.user.username))
                 toast.success("User signed in successfully!");
                 navigate('/dashboard')
             } catch (err) {
-                console.log(err);
                 setLoading(false);
                 if (err.response && err.response.data) {
                     setError(err.response.data.message);
