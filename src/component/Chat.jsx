@@ -45,15 +45,24 @@ const Chat = () => {
         }
 
         // step 4 : listen to online users. endpoint to get online users
-        initialSocket.on('update-online-users', (onlineUsersIds) => {
-            console.log(onlineUsersIds)
-            setOnlineUsers(onlineUsersIds);
-        });
+        // initialSocket.on('update-online-users', (onlineUsersIds) => {
+        //     console.log(onlineUsersIds)
+        //     setOnlineUsers(onlineUsersIds);
+        // });
+
+        fetchOnlineUsers(initialSocket);
 
         return () => {
             initialSocket.disconnect();
         };
     }, []);
+
+    const fetchOnlineUsers = async (initialSocket) => {
+         initialSocket.on('update-online-users', (onlineUsersIds) => {
+            console.log(onlineUsersIds)
+            setOnlineUsers(onlineUsersIds);
+        });
+    }
 
     // step 3: listen to messages or receive messages from one user to the owner of acct.
     useEffect(() => {
