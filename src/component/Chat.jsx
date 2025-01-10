@@ -67,6 +67,7 @@ const Chat = () => {
 
         // step 2: listen to users or get all users from the server
         socket.on('getUsers', (data) => {
+            console.log(data)
             if (data.status) {
                 // filter out the user who is chatting with i.e d owner of acct.
                 const filteredUsers = data.users.filter((user)=> user._id !== userId)
