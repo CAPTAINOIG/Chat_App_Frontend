@@ -46,6 +46,7 @@ const Chat = () => {
 
         // step 4 : listen to online users. endpoint to get online users
         initialSocket.on('update-online-users', (onlineUsersIds) => {
+            console.log(onlineUsersIds)
             setOnlineUsers(onlineUsersIds);
         });
 
