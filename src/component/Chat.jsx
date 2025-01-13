@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
+import { BsThreeDotsVertical } from "react-icons/bs";
+import { FaReply, FaCopy, FaForward, FaStar, FaThumbtack, FaTrashAlt, FaCheckSquare, FaShareAlt, FaInfoCircle } from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import EmojiPicker from 'emoji-picker-react';
+import { toast, ToastContainer } from 'react-toastify';
+
 
 const baseUrl = "https://chat-app-backend-seuk.onrender.com"
 // const baseUrl = "http://localhost:3000"
 
 
 const Chat = () => {
+    const messageRefs = useRef({});
     const username = localStorage.getItem('username');
     const userId = localStorage.getItem('userId');
 
@@ -16,9 +23,52 @@ const Chat = () => {
     const [socket, setSocket] = useState(null);
     const [receiverId, setReceiverId] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
-    const [onlineUsers, setOnlineUsers] = useState(null)
+    const [onlineUsers, setOnlineUsers] = useState(null);
+    const [openToggle, setOpenToggle] = useState(false);
+    const [selectedMsg, setSelectedMsg] = useState(null);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [replyMessage, setReplyMessage] = useState('');
 
     const time = new Date().toLocaleTimeString();
+
+    const data = [
+        {
+            icon: <FaReply />,
+            text: 'Reply',
+        },
+        {
+            icon: <FaCopy />,
+            text: 'Copy',
+        },
+        {
+            icon: <FaForward />,
+            text: 'Forward',
+        },
+        {
+            icon: <FaStar />,
+            text: 'Star',
+        },
+        {
+            icon: <FaThumbtack />,
+            text: 'Pin',
+        },
+        {
+            icon: <FaTrashAlt />,
+            text: 'Delete',
+        },
+        {
+            icon: <FaCheckSquare />,
+            text: 'Select',
+        },
+        {
+            icon: <FaShareAlt />,
+            text: 'Share',
+        },
+        {
+            icon: <FaInfoCircle />,
+            text: 'Info',
+        },
+    ];
 
     // step 1: fetch all users, this is done once on page load and i get the last chatted user id from local storage and fetch the messages for that user.
     useEffect(() => {
@@ -28,14 +78,14 @@ const Chat = () => {
         initialSocket.emit('user-online', userId)
 
         // Call the getAllUsers function here
-        getAllUsers(initialSocket); 
+        getAllUsers(initialSocket);
 
         const lastChattedUserId = localStorage.getItem('lastChattedUserId');
         if (lastChattedUserId) {
             setReceiverId(lastChattedUserId);
             fetchMessages(lastChattedUserId);
             initialSocket.emit('getUsers', { token: localStorage.getItem('userToken') });
-            
+
             initialSocket.on('getUsers', (data) => {
                 if (data.status) {
                     const user = data.users.find(u => u._id === lastChattedUserId);
@@ -58,8 +108,8 @@ const Chat = () => {
     }, []);
 
     const fetchOnlineUsers = async (initialSocket) => {
-         initialSocket.on('update-online-users', (onlineUsersIds) => {
-            console.log(onlineUsersIds)
+        initialSocket.on('update-online-users', (onlineUsersIds) => {
+            // console.log(onlineUsersIds)
             setOnlineUsers(onlineUsersIds);
         });
     }
@@ -75,14 +125,14 @@ const Chat = () => {
         socket.on('getUsers', (data) => {
             if (data.status) {
                 // filter out the user who is chatting with i.e d owner of acct.
-                const filteredUsers = data.users.filter((user)=> user._id !== userId)
+                const filteredUsers = data.users.filter((user) => user._id !== userId)
                 // map the filtered users and add online status
                 const updatedUsers = filteredUsers.map((user => ({
                     ...user,
-                   // add online status
+                    // add online status
                     online: onlineUsers.includes(user._id)
                 })));
-                console.log(updatedUsers)
+                // console.log(updatedUsers)
                 setUsers(updatedUsers)
             }
         });
@@ -120,14 +170,26 @@ const Chat = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const payload = {
+            senderId: userId,
+            receiverId,
+            replyTo: replyMessage,
+            content: message,
+            users: [receiverId, userId]
+        }
+        console.log(payload);
         if (message && receiverId) {
             try {
-              socket.emit('chat message', { senderId: userId, receiverId, content: message, users: [receiverId, userId] });
-                 setMessages((prevMessages) => [
+                socket.emit('chat message', payload);
+                // socket.emit('chat message', { senderId: userId, receiverId, replyTo: replyMessage, content: message, users: [receiverId, userId] });
+
+                setMessages((prevMessages) => [
                     ...prevMessages,
-                    { senderId: userId, receiverId, content: message, timestamp: new Date() }
+                    // { senderId: userId, receiverId, content: message,  timestamp: new Date() }
+                    payload
                 ]);
                 setMessage('');
+                setReplyMessage('');
             } catch (error) {
                 console.error('Error sending message:', error);
             }
@@ -141,67 +203,218 @@ const Chat = () => {
         fetchMessages(user._id);
     };
 
+    const handleToggle = (msgId) => {
+        setOpenToggle(!openToggle);
+        setSelectedMsg(msgId);
+    }
+
+    const toggleEmojiPicker = () => {
+        setShowEmojiPicker((prev) => !prev);
+    }
+
+    const handleEmojiClick = (emojiData) => {
+        setMessage((prev) => prev + emojiData.emoji);
+    };
+
+    const scrollToMessage = (messageId) => {
+        const targetElement = messageRefs.current[messageId];
+        console.log('Target Element:', targetElement);
+        if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
+
+
+    const handleAction = (action, message, _id) => {
+        if (action === 'Copy') {
+            handleCopy(message);
+        }
+        else if (action === 'Reply') {
+            handleReply(message);
+        }
+        else if (action === 'Delete') {
+            handleDelete(_id);
+            setOpenToggle(false);
+        }
+    }
+
+    const handleCopy = async (message) => {
+        try {
+            await navigator.clipboard.writeText(message);
+            toast.success('Message copied to clipboard!');
+            setOpenToggle(false);
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+        }
+    };
+
+    const handleReply = async (replyMessage) => {
+        setReplyMessage(replyMessage);
+        setOpenToggle(false);
+    };
+
+    const handleDelete = async (_id) => {
+        if(!_id){
+            toast.error('invalid message id');
+            return;
+        }
+       
+        // console.log(_id)
+        // setMessage(deleteMessage);
+        // setMessage(message);
+        // setOpenToggle(false);
+        try {
+            const response = await axios.delete(`http://localhost:3000/user/deleteMessage/${_id}`);
+            toast.success(`${response.data.message}`);
+            const deleteMessage = messages.filter((item) => item._id !== _id);
+            setMessages(deleteMessage)
+        } catch (error) {
+            if(error.response.data.status){
+                toast.error(`${error.response.data.message}`);
+            }
+            else if(error.response.status === 404){
+                toast.error('wrong path');
+            }
+            else{
+                toast.error(`${error.response.data.message}`);
+            }
+        }
+    };
+
+
     return (
-      <div className='background'>
-        <div className="flex flex-col md:flex-row h-screen">
-            <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto">
-                <h2 className="text-xl font-bold mb-4 text-gray-900 bg-gray-100 border-t rounded-sm p-1 border-gray-300">Users</h2>
-                <div className="space-y-2">
-                    {users.map((item, i) => (
-                        <div
-                            key={i}
-                            className="p-2 cursor-pointer hover:bg-gray-200 rounded bg-gray-100 bg-opacity-50"
-                            onClick={() => handleUserClick(item)}
-                        >
-                            {item.username}
-                            <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-500'}`}>
-                                ({item.online ? 'Online' : 'Offline'})
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="flex-1 flex flex-col  bg-opacity-80 overflow-y-auto">
-                <div className="flex-1 p-4">
-                    {selectedUser ? (
-                        <>
-                            <h3 className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300">Chatting with {selectedUser.username}</h3>
-                            <div className="space-y-2">
-                                {messages.map((msg, index) => (
-                                    <div
-                                        key={index}
-                                        className={`flex ${msg.senderId === userId ? 'justify-end' : 'justify-start'} p-2`}
-                                    >
-                                        <div className={`p-2 rounded ${msg.senderId === userId ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}`}>
-                                            <strong>{msg.senderId === userId ? 'You' : selectedUser.username}:</strong> {msg.content} <em className="text-sm text-gray-500">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : <span>{time}</span>}</em>
-                                        </div>
-                                    </div>
-                                ))}
+        <div className='background'>
+            <div className="flex flex-col md:flex-row h-screen">
+                <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto">
+                    <h2 className="text-xl font-bold mb-4 text-gray-900 bg-gray-100 border-t rounded-sm p-1 border-gray-300">Users</h2>
+                    <div className="space-y-2">
+                        {users.map((item, i) => (
+                            <div
+                                key={i}
+                                className="p-2 cursor-pointer hover:bg-gray-200 rounded bg-gray-100 bg-opacity-50"
+                                onClick={() => handleUserClick(item)}
+                            >
+                                {item.username}
+                                <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-500'}`}>
+                                    ({item.online ? 'Online' : 'Offline'})
+                                </span>
                             </div>
-                        </>
-                    ) : (
-                        <p className="text-gray-700 bg-gray-100 border-t border-gray-300">Select a user to start chatting.</p>
-                    )}
+                        ))}
+                    </div>
                 </div>
 
-                <form className="p-4 bg-gray-500 border-t border-gray-300" onSubmit={handleSubmit}>
-                    <input
-                        type="text"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Type a message"
-                        className="w-full p-2 border border-gray-300 rounded"
-                    />
-                    <button
-                        type="submit"
-                        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                        Send
-                    </button>
-                </form>
+                <div className="flex-1 flex flex-col bg-opacity-80" id='scroll-container'>
+                    <div className="flex-1">
+                        {selectedUser ? (
+                            <>
+                                <h3 className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 fixed w-full py-6 p-3 z-20">Chatting with {selectedUser.username}</h3>
+                                <div className="space-y-2 py-[12%]" id='scroll'>
+                                    {messages.map((msg, index) => (
+                                        <div
+                                            key={msg._id}
+                                            ref={(el) => {
+                                                if (el) {
+                                                    messageRefs.current[msg._id] = el;
+                                                }
+                                            }}
+                                            className={`flex group ${msg.senderId === userId ? 'justify-end' : 'justify-start'} p-2`}
+                                        >
+                                            <div className={`p-2 mb-5 rounded relative border-2 border-green-500 max-w-[70%] min-w-[30%] ${msg.senderId === userId ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}`}>
+                                                <div className='flex gap-1'>
+                                                    <strong>{msg.senderId === userId ? 'You' : selectedUser.username}:</strong>
+                                                    <p>{msg.content}</p>
+                                                </div>
+                                                {msg.replyTo && (
+                                                    <div onClick={() => scrollToMessage(msg?._id)} className="reply-info p-2 border-l-4 border-blue-500 bg-gray-100 text-sm mb-2">
+                                                        <span className="text-gray-600">Replying to:</span> <span>{msg?.replyTo}</span>
+                                                    </div>
+                                                )}
+                                                {/* <p>{msg.content}</p> */}
+                                                <em className="text-sm text-gray-500">{msg.timestamp ? new Date(msg?.timestamp).toLocaleTimeString() : <span>{time}</span>}</em>
+                                                <div onClick={() => handleToggle(msg?._id)} className="group cursor-pointer">
+                                                    <span className={`${msg.senderId === userId ? 'absolute top-[5%] left-[-14%] p-2 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 hidden group-hover:flex' : 'absolute top-[10%] right-[-14%] p-2 bg-blue-200 rounded-full cursor-pointer hover:bg-blue-300 hidden group-hover:flex'}`}>
+                                                        <BsThreeDotsVertical className="text-xl" />
+                                                    </span>
+                                                </div>
+
+
+                                                <div>
+                                                    {openToggle && selectedMsg === msg._id && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: -20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, y: -20 }}
+                                                            transition={{ duration: 0.9 }}
+                                                            className={`${msg.senderId === userId
+                                                                ? 'absolute top-[0%] left-[-64%] w-1/2 p-2 z-10 bg-gray-200'
+                                                                : 'absolute top-[0%] right-[-64%] w-1/2 p-2 z-10 bg-blue-200'
+                                                                }`}
+                                                        >
+                                                            {data.map((item, index) => (
+                                                                <div
+                                                                    key={index}
+                                                                    className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-gray-300 rounded-full"
+                                                                    onClick={() => handleAction(item.text, msg.content, msg._id)}
+                                                                >
+                                                                    {item?.icon}
+                                                                    <span>{item?.text}</span>
+                                                                </div>
+                                                            ))}
+                                                        </motion.div>
+                                                    )}
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                            </>
+                        ) : (
+                            <p className="text-gray-700 bg-gray-100 border-t border-gray-300 py-6 p-3 text-xl">Select a user to start chatting.</p>
+                        )}
+                    </div>
+
+                    <form className="p-4 bg-gray-500 border-t z-20 border-gray-300 fixed w-full -bottom-1" onSubmit={handleSubmit}>
+                        <div className="flex items-center">
+                            <button type="button" onClick={toggleEmojiPicker} className="mr-2 text-2xl">
+                                😊
+                            </button>
+                            <div className="w-full p-2 border border-gray-300 rounded">
+                                {replyMessage && (
+                                    <div className="reply-indicator text-white p-2 bg-blue-500 rounded mb-2 flex lg:gap-[64%] items-center cursor-pointer">
+                                        <p>Replying to: {replyMessage}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setReplyMessage('')}
+                                            className="text-white hover:text-red-500 rounded-full px-2 cursor-pointer"
+                                        >
+                                            <p> ✖</p>
+                                        </button>
+                                    </div>
+                                )}
+                                <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type a message"
+                                    className="w-full p-2 border border-gray-300 rounded"
+                                />
+                            </div>
+                        </div>
+                        <div className='absolute bottom-[100%] left-4 z-30 '>
+                            {showEmojiPicker && (
+                                <EmojiPicker onEmojiClick={handleEmojiClick} />
+                            )}
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                            Send
+                        </button>
+                    </form>
+                </div>
             </div>
-        </div>
+            <ToastContainer />
         </div>
     );
 };
