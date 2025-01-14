@@ -6,10 +6,11 @@ import { FaReply, FaCopy, FaForward, FaStar, FaThumbtack, FaTrashAlt, FaCheckSqu
 import { motion } from 'framer-motion';
 import EmojiPicker from 'emoji-picker-react';
 import { toast, ToastContainer } from 'react-toastify';
+import { use } from 'react';
 
 
-const baseUrl = "https://chat-app-backend-seuk.onrender.com"
-// const baseUrl = "http://localhost:3000"
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com"
+const baseUrl = "http://localhost:3000"
 
 
 const Chat = () => {
@@ -28,6 +29,11 @@ const Chat = () => {
     const [selectedMsg, setSelectedMsg] = useState(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [replyMessage, setReplyMessage] = useState('');
+    const [typing, setTyping] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
+    const [openForwardToggle, setOpenForwardToggle] = useState(false);
+    const [selectedToggle, setSelectedToggle] = useState(false);
+    const [forwardTo, setForwardTo] = useState('');
 
     const time = new Date().toLocaleTimeString();
 
@@ -41,6 +47,10 @@ const Chat = () => {
             text: 'Copy',
         },
         {
+            icon: <FaTrashAlt />,
+            text: 'Delete',
+        },
+        {
             icon: <FaForward />,
             text: 'Forward',
         },
@@ -51,10 +61,6 @@ const Chat = () => {
         {
             icon: <FaThumbtack />,
             text: 'Pin',
-        },
-        {
-            icon: <FaTrashAlt />,
-            text: 'Delete',
         },
         {
             icon: <FaCheckSquare />,
@@ -117,12 +123,25 @@ const Chat = () => {
     // step 3: listen to messages or receive messages from one user to the owner of acct.
     useEffect(() => {
         if (!socket) return;
+        socket.on('typing', (data) => {
+            if (data.senderId !== userId && data.isTyping) {
+                setIsTyping(true);
+            }
+        });
+
+        socket.on('stopTyping', (data) => {
+            if (data.senderId !== userId && !data.isTyping) {
+                setIsTyping(false);
+            }
+        });
+
         socket.on('recievemessage', (msg) => {
             setMessages((prevMessages) => [...prevMessages, msg]);
         });
 
         // step 2: listen to users or get all users from the server
         socket.on('getUsers', (data) => {
+            console.log(data)
             if (data.status) {
                 // filter out the user who is chatting with i.e d owner of acct.
                 const filteredUsers = data.users.filter((user) => user._id !== userId)
@@ -136,9 +155,12 @@ const Chat = () => {
                 setUsers(updatedUsers)
             }
         });
+
         return () => {
             socket.off('recievemessage');
             socket.off('getUsers');
+            socket.off('typing');
+            socket.off('stopTyping');
         };
     }, [socket, onlineUsers, userId]);
 
@@ -177,7 +199,6 @@ const Chat = () => {
             content: message,
             users: [receiverId, userId]
         }
-        console.log(payload);
         if (message && receiverId) {
             try {
                 socket.emit('chat message', payload);
@@ -190,17 +211,56 @@ const Chat = () => {
                 ]);
                 setMessage('');
                 setReplyMessage('');
+                setShowEmojiPicker(false);
+
             } catch (error) {
                 console.error('Error sending message:', error);
             }
         }
     };
 
+    const handleTyping = (e) => {
+        socket.emit('typing', {
+            senderId: userId,
+            receiverId: receiverId,
+            content: e.target.value
+        });
+        setIsTyping(true);
+    }
+
+    const handleStopTyping = (e) => {
+        socket.emit('stopTyping', { senderId: userId, receiverId, content: e.target.value, isTyping: false });
+        setIsTyping(false);
+    }
+
+    // useEffect(() => {
+    //     if (!socket) return; 
+    //     socket.on('typing', (data) => {
+    //         console.log("Typing notification received:", data);
+    //         if (data.senderId !== userId && data.receiverId === userId) {
+    //             setTyping(true);
+    //         }
+    //     });
+
+    //     socket.on('stopTyping', (data) => {
+    //         console.log("Stop typing notification received:", data);
+    //         if (data.senderId !== userId && data.receiverId === userId) {
+    //             setTyping(false);
+    //         }
+    //     });
+
+    //     return () => {
+    //         socket.off('typing');
+    //         socket.off('stopTyping');
+    //     };
+    // }, [userId, socket]);
+
     const handleUserClick = (user) => {
         setReceiverId(user._id);
         setSelectedUser(user);
         localStorage.setItem('lastChattedUserId', user._id);
         fetchMessages(user._id);
+        setOpenForwardToggle(false)
     };
 
     const handleToggle = (msgId) => {
@@ -214,6 +274,7 @@ const Chat = () => {
 
     const handleEmojiClick = (emojiData) => {
         setMessage((prev) => prev + emojiData.emoji);
+        // setShowEmojiPicker(false);
     };
 
     const scrollToMessage = (messageId) => {
@@ -237,6 +298,9 @@ const Chat = () => {
             handleDelete(_id);
             setOpenToggle(false);
         }
+        else if (action === 'Forward') {
+            handleForwardMessage(_id);
+        }
     }
 
     const handleCopy = async (message) => {
@@ -255,33 +319,57 @@ const Chat = () => {
     };
 
     const handleDelete = async (_id) => {
-        if(!_id){
+        if (!_id) {
             toast.error('invalid message id');
             return;
         }
-       
-        // console.log(_id)
-        // setMessage(deleteMessage);
-        // setMessage(message);
-        // setOpenToggle(false);
         try {
             const response = await axios.delete(`http://localhost:3000/user/deleteMessage/${_id}`);
             toast.success(`${response.data.message}`);
             const deleteMessage = messages.filter((item) => item._id !== _id);
             setMessages(deleteMessage)
         } catch (error) {
-            if(error.response.data.status){
+            if (error.response.data.status) {
                 toast.error(`${error.response.data.message}`);
             }
-            else if(error.response.status === 404){
+            else if (error.response.status === 404) {
                 toast.error('wrong path');
             }
-            else{
+            else {
                 toast.error(`${error.response.data.message}`);
             }
         }
     };
 
+    const handleForwardMessage = (_id) => {
+        setSelectedToggle(_id);
+        setOpenForwardToggle(!openForwardToggle);
+        setOpenToggle(false)
+    };
+
+    // const handleForwardMessage = (_id) => {
+    //     // Prevent redundant loops by targeting a single message
+    //     const messageToForward = messages.find((msg) => msg._id === _id);
+
+    //     if (messageToForward) {
+    //         setSelectedToggle(_id);
+    //         setOpenForwardToggle(true); 
+    //         setOpenToggle(false); 
+    //     } else {
+    //         console.error(`Message with ID ${_id} not found.`);
+    //     }
+    // };
+
+    const handleSendForward = (_id) => {
+        
+     }
+
+    const handleForwardTo = (e)=>{
+        console.log(e.target.value)
+        const filteredForwardUser = users.find((user) => user.username === e.target.value.toLowerCase());
+        console.log(filteredForwardUser.username);
+        setForwardTo(filteredForwardUser.username);
+    }
 
     return (
         <div className='background'>
@@ -309,6 +397,7 @@ const Chat = () => {
                         {selectedUser ? (
                             <>
                                 <h3 className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 fixed w-full py-6 p-3 z-20">Chatting with {selectedUser.username}</h3>
+                                {isTyping && <p className='text-xl font-bold right-10 text-blue-900 absolute top-10 z-50'>{selectedUser.username} typing...</p>}
                                 <div className="space-y-2 py-[12%]" id='scroll'>
                                     {messages.map((msg, index) => (
                                         <div
@@ -332,11 +421,13 @@ const Chat = () => {
                                                 )}
                                                 {/* <p>{msg.content}</p> */}
                                                 <em className="text-sm text-gray-500">{msg.timestamp ? new Date(msg?.timestamp).toLocaleTimeString() : <span>{time}</span>}</em>
-                                                <div onClick={() => handleToggle(msg?._id)} className="group cursor-pointer">
-                                                    <span className={`${msg.senderId === userId ? 'absolute top-[5%] left-[-14%] p-2 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 hidden group-hover:flex' : 'absolute top-[10%] right-[-14%] p-2 bg-blue-200 rounded-full cursor-pointer hover:bg-blue-300 hidden group-hover:flex'}`}>
-                                                        <BsThreeDotsVertical className="text-xl" />
-                                                    </span>
-                                                </div>
+                                                {!openForwardToggle &&
+                                                    <div onClick={() => handleToggle(msg?._id)} className="group cursor-pointer">
+                                                        <span className={`${msg.senderId === userId ? 'absolute top-[5%] left-[-14%] p-2 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 hidden group-hover:flex' : 'absolute top-[10%] right-[-14%] p-2 bg-blue-200 rounded-full cursor-pointer hover:bg-blue-300 hidden group-hover:flex'}`}>
+                                                            <BsThreeDotsVertical className="text-xl" />
+                                                        </span>
+                                                    </div>
+                                                }
 
 
                                                 <div>
@@ -365,9 +456,50 @@ const Chat = () => {
                                                     )}
                                                 </div>
 
+                                                <div>
+                                                    {openForwardToggle && selectedToggle === msg._id && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: -20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, y: -20 }}
+                                                            transition={{ duration: 0.9 }}
+                                                            className='absolute top-[10%] right-[110%] w-full p-2 bg-gray-200'
+                                                        >
+                                                            <div className='float-right text-red-500 hover:text-red-700 cursor-pointer'>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setOpenForwardToggle('')}
+
+                                                                >
+                                                                    <p className='text-xl'>✖</p>
+                                                                </button>
+                                                            </div>
+                                                            <div>
+                                                                <p className='font-bold'>Forward To</p>
+                                                                <input className='border border-b-green-500 w-full rounded outline-none' type="text" onChange={handleForwardTo}/>
+                                                                <div className="space-y-2">
+                                                                    {users.map((item, i) => (
+                                                                        <div
+                                                                            key={i}
+                                                                            className="p-2 cursor-pointer hover:text-white rounded bg-gray-100 hover:bg-blue-700 bg-opacity-50"
+                                                                            onClick={() => handleUserClick(item)}
+                                                                        >
+                                                                            {item.username}
+                                                                            <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-500'}`}>
+                                                                                ({item.online ? 'Online' : 'Offline'})
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </div>
+
                                             </div>
                                         </div>
                                     ))}
+
                                 </div>
 
                             </>
@@ -381,6 +513,8 @@ const Chat = () => {
                             <button type="button" onClick={toggleEmojiPicker} className="mr-2 text-2xl">
                                 😊
                             </button>
+
+                            {/* Typing notification */}
                             <div className="w-full p-2 border border-gray-300 rounded">
                                 {replyMessage && (
                                     <div className="reply-indicator text-white p-2 bg-blue-500 rounded mb-2 flex lg:gap-[64%] items-center cursor-pointer">
@@ -394,7 +528,11 @@ const Chat = () => {
                                         </button>
                                     </div>
                                 )}
-                                <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type a message"
+                                <input type="text" value={message} onKeyDown={handleTyping}
+                                    onBlur={handleStopTyping} onChange={(e) => setMessage(e.target.value)} onKeyUp={() => {
+
+
+                                    }} placeholder="Type a message"
                                     className="w-full p-2 border border-gray-300 rounded"
                                 />
                             </div>
