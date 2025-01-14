@@ -9,8 +9,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import { use } from 'react';
 
 
-// const baseUrl = "https://chat-app-backend-seuk.onrender.com"
-const baseUrl = "http://localhost:3000"
+const baseUrl = "https://chat-app-backend-seuk.onrender.com"
+// const baseUrl = "http://localhost:3000"
 
 
 const Chat = () => {
