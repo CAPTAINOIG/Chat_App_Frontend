@@ -324,7 +324,7 @@ const Chat = () => {
             return;
         }
         try {
-            const response = await axios.delete(`http://localhost:3000/user/deleteMessage/${_id}`);
+            const response = await axios.delete(`${baseUrl}/user/deleteMessage/${_id}`);
             toast.success(`${response.data.message}`);
             const deleteMessage = messages.filter((item) => item._id !== _id);
             setMessages(deleteMessage)
