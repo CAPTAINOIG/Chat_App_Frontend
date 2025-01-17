@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
-import { BsThreeDotsVertical } from "react-icons/bs";
 import { FaReply, FaCopy, FaForward, FaStar, FaThumbtack, FaTrashAlt, FaCheckSquare, FaShareAlt, FaInfoCircle } from 'react-icons/fa';
-import { motion } from 'framer-motion';
-import EmojiPicker from 'emoji-picker-react';
 import { toast, ToastContainer } from 'react-toastify';
-import { use } from 'react';
+import UserList from './UserList';
+import ChatInput from './ChatInput';
+import Message from './Message';
 
 
-const baseUrl = "https://chat-app-backend-seuk.onrender.com"
-// const baseUrl = "http://localhost:3000"
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+const baseUrl = "http://localhost:3000";
 
 
 const Chat = () => {
@@ -34,6 +33,7 @@ const Chat = () => {
     const [openForwardToggle, setOpenForwardToggle] = useState(false);
     const [selectedToggle, setSelectedToggle] = useState(false);
     const [forwardTo, setForwardTo] = useState('');
+    const [filteredUsers, setFilteredUsers] = useState([]);
 
     const time = new Date().toLocaleTimeString();
 
@@ -141,7 +141,6 @@ const Chat = () => {
 
         // step 2: listen to users or get all users from the server
         socket.on('getUsers', (data) => {
-            console.log(data)
             if (data.status) {
                 // filter out the user who is chatting with i.e d owner of acct.
                 const filteredUsers = data.users.filter((user) => user._id !== userId)
@@ -181,7 +180,6 @@ const Chat = () => {
         setMessages([]);
         try {
             const response = await axios.get(`${baseUrl}/user/getMessage?userId=${userId}&receiverId=${senderId}`);
-            // console.log('Fetched messages:', response.data);
             if (response.data.status) {
                 setMessages(response.data.messages);
             }
@@ -189,6 +187,8 @@ const Chat = () => {
             console.error('Error fetching messages:', error);
         }
     };
+
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -299,7 +299,7 @@ const Chat = () => {
             setOpenToggle(false);
         }
         else if (action === 'Forward') {
-            handleForwardMessage(_id);
+            handleForwardMessage(_id, users);
         }
     }
 
@@ -341,56 +341,50 @@ const Chat = () => {
         }
     };
 
-    const handleForwardMessage = (_id) => {
+    const handleForwardMessage = (_id, users) => {
+        setUsers(users);
         setSelectedToggle(_id);
         setOpenForwardToggle(!openForwardToggle);
         setOpenToggle(false)
     };
 
-    // const handleForwardMessage = (_id) => {
-    //     // Prevent redundant loops by targeting a single message
-    //     const messageToForward = messages.find((msg) => msg._id === _id);
 
-    //     if (messageToForward) {
-    //         setSelectedToggle(_id);
-    //         setOpenForwardToggle(true); 
-    //         setOpenToggle(false); 
-    //     } else {
-    //         console.error(`Message with ID ${_id} not found.`);
-    //     }
-    // };
+    const handleForwardClick = (_id, users) => {
+        console.log(_id, users);
+        // setForwardTo(user.username);
+    };
 
-    const handleSendForward = (_id) => {
-        
-     }
 
-    const handleForwardTo = (e)=>{
-        console.log(e.target.value)
-        const filteredForwardUser = users.find((user) => user.username === e.target.value.toLowerCase());
-        console.log(filteredForwardUser.username);
-        setForwardTo(filteredForwardUser.username);
-    }
+    const handleForwardTo = (e) => {
+        const inputValue = e.target.value;
+        setForwardTo(inputValue); 
+        const filteredUsers = users.filter((user) =>
+            user.username.toLowerCase().includes(inputValue.toLowerCase()) 
+        );
+        setFilteredUsers(filteredUsers);
+    };
+    
+
+
+    const forwardMessage = async (username, receiverId) => {
+        console.log(username, receiverId);
+        // try {
+        //     const response = await axios.post(`${baseUrl}/messages/forward`, {
+        //         content,
+        //         senderId: "userId",
+        //         recipients: receiverId,
+        //     });
+        //     console.log("Message forwarded successfully:", response.data);
+        // } catch (error) {
+        //     console.error("Error forwarding message:", error);
+        // }
+    };
 
     return (
         <div className='background'>
             <div className="flex flex-col md:flex-row h-screen">
-                <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto">
-                    <h2 className="text-xl font-bold mb-4 text-gray-900 bg-gray-100 border-t rounded-sm p-1 border-gray-300">Users</h2>
-                    <div className="space-y-2">
-                        {users.map((item, i) => (
-                            <div
-                                key={i}
-                                className="p-2 cursor-pointer hover:bg-gray-200 rounded bg-gray-100 bg-opacity-50"
-                                onClick={() => handleUserClick(item)}
-                            >
-                                {item.username}
-                                <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-500'}`}>
-                                    ({item.online ? 'Online' : 'Offline'})
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+
+                <UserList users={users} handleUserClick={handleUserClick} />
 
                 <div className="flex-1 flex flex-col bg-opacity-80" id='scroll-container'>
                     <div className="flex-1">
@@ -400,106 +394,32 @@ const Chat = () => {
                                 {isTyping && <p className='text-xl font-bold right-10 text-blue-900 absolute top-10 z-50'>{selectedUser.username} typing...</p>}
                                 <div className="space-y-2 py-[12%]" id='scroll'>
                                     {messages.map((msg, index) => (
-                                        <div
-                                            key={msg._id}
-                                            ref={(el) => {
-                                                if (el) {
-                                                    messageRefs.current[msg._id] = el;
-                                                }
-                                            }}
-                                            className={`flex group ${msg.senderId === userId ? 'justify-end' : 'justify-start'} p-2`}
-                                        >
-                                            <div className={`p-2 mb-5 rounded relative border-2 border-green-500 max-w-[70%] min-w-[30%] ${msg.senderId === userId ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}`}>
-                                                <div className='flex gap-1'>
-                                                    <strong>{msg.senderId === userId ? 'You' : selectedUser.username}:</strong>
-                                                    <p>{msg.content}</p>
-                                                </div>
-                                                {msg.replyTo && (
-                                                    <div onClick={() => scrollToMessage(msg?._id)} className="reply-info p-2 border-l-4 border-blue-500 bg-gray-100 text-sm mb-2">
-                                                        <span className="text-gray-600">Replying to:</span> <span>{msg?.replyTo}</span>
-                                                    </div>
-                                                )}
-                                                {/* <p>{msg.content}</p> */}
-                                                <em className="text-sm text-gray-500">{msg.timestamp ? new Date(msg?.timestamp).toLocaleTimeString() : <span>{time}</span>}</em>
-                                                {!openForwardToggle &&
-                                                    <div onClick={() => handleToggle(msg?._id)} className="group cursor-pointer">
-                                                        <span className={`${msg.senderId === userId ? 'absolute top-[5%] left-[-14%] p-2 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 hidden group-hover:flex' : 'absolute top-[10%] right-[-14%] p-2 bg-blue-200 rounded-full cursor-pointer hover:bg-blue-300 hidden group-hover:flex'}`}>
-                                                            <BsThreeDotsVertical className="text-xl" />
-                                                        </span>
-                                                    </div>
-                                                }
-
-
-                                                <div>
-                                                    {openToggle && selectedMsg === msg._id && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: -20 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            exit={{ opacity: 0, y: -20 }}
-                                                            transition={{ duration: 0.9 }}
-                                                            className={`${msg.senderId === userId
-                                                                ? 'absolute top-[0%] left-[-64%] w-1/2 p-2 z-10 bg-gray-200'
-                                                                : 'absolute top-[0%] right-[-64%] w-1/2 p-2 z-10 bg-blue-200'
-                                                                }`}
-                                                        >
-                                                            {data.map((item, index) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-gray-300 rounded-full"
-                                                                    onClick={() => handleAction(item.text, msg.content, msg._id)}
-                                                                >
-                                                                    {item?.icon}
-                                                                    <span>{item?.text}</span>
-                                                                </div>
-                                                            ))}
-                                                        </motion.div>
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    {openForwardToggle && selectedToggle === msg._id && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: -20 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            exit={{ opacity: 0, y: -20 }}
-                                                            transition={{ duration: 0.9 }}
-                                                            className='absolute top-[10%] right-[110%] w-full p-2 bg-gray-200'
-                                                        >
-                                                            <div className='float-right text-red-500 hover:text-red-700 cursor-pointer'>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setOpenForwardToggle('')}
-
-                                                                >
-                                                                    <p className='text-xl'>✖</p>
-                                                                </button>
-                                                            </div>
-                                                            <div>
-                                                                <p className='font-bold'>Forward To</p>
-                                                                <input className='border border-b-green-500 w-full rounded outline-none' type="text" onChange={handleForwardTo}/>
-                                                                <div className="space-y-2">
-                                                                    {users.map((item, i) => (
-                                                                        <div
-                                                                            key={i}
-                                                                            className="p-2 cursor-pointer hover:text-white rounded bg-gray-100 hover:bg-blue-700 bg-opacity-50"
-                                                                            onClick={() => handleUserClick(item)}
-                                                                        >
-                                                                            {item.username}
-                                                                            <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-500'}`}>
-                                                                                ({item.online ? 'Online' : 'Offline'})
-                                                                            </span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </div>
-
-                                            </div>
-                                        </div>
+                                        <Message
+                                            msg={msg}
+                                            userId={userId}
+                                            selectedUser={selectedUser}
+                                            messageRefs={messageRefs}
+                                            openToggle={openToggle}
+                                            selectedMsg={selectedMsg}
+                                            handleToggle={handleToggle}
+                                            data={data}
+                                            handleAction={handleAction}
+                                            openForwardToggle={openForwardToggle}
+                                            selectedToggle={selectedToggle}
+                                            forwardTo={forwardTo}
+                                            handleForwardTo={handleForwardTo}
+                                            handleForwardClick={handleForwardClick}
+                                            forwardMessage={forwardMessage}
+                                            setOpenForwardToggle={setOpenForwardToggle}
+                                            users={users}
+                                            scrollToMessage={scrollToMessage}
+                                            filteredUsers={filteredUsers}
+                                            setFilteredUsers={setFilteredUsers}
+                                            setForwardTo={setForwardTo}
+                                            setMessages={setMessages}
+                                            messages={messages}
+                                        />
                                     ))}
-
                                 </div>
 
                             </>
@@ -507,49 +427,18 @@ const Chat = () => {
                             <p className="text-gray-700 bg-gray-100 border-t border-gray-300 py-6 p-3 text-xl">Select a user to start chatting.</p>
                         )}
                     </div>
-
-                    <form className="p-4 bg-gray-500 border-t z-20 border-gray-300 fixed w-full -bottom-1" onSubmit={handleSubmit}>
-                        <div className="flex items-center">
-                            <button type="button" onClick={toggleEmojiPicker} className="mr-2 text-2xl">
-                                😊
-                            </button>
-
-                            {/* Typing notification */}
-                            <div className="w-full p-2 border border-gray-300 rounded">
-                                {replyMessage && (
-                                    <div className="reply-indicator text-white p-2 bg-blue-500 rounded mb-2 flex lg:gap-[64%] items-center cursor-pointer">
-                                        <p>Replying to: {replyMessage}</p>
-                                        <button
-                                            type="button"
-                                            onClick={() => setReplyMessage('')}
-                                            className="text-white hover:text-red-500 rounded-full px-2 cursor-pointer"
-                                        >
-                                            <p> ✖</p>
-                                        </button>
-                                    </div>
-                                )}
-                                <input type="text" value={message} onKeyDown={handleTyping}
-                                    onBlur={handleStopTyping} onChange={(e) => setMessage(e.target.value)} onKeyUp={() => {
-
-
-                                    }} placeholder="Type a message"
-                                    className="w-full p-2 border border-gray-300 rounded"
-                                />
-                            </div>
-                        </div>
-                        <div className='absolute bottom-[100%] left-4 z-30 '>
-                            {showEmojiPicker && (
-                                <EmojiPicker onEmojiClick={handleEmojiClick} />
-                            )}
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        >
-                            Send
-                        </button>
-                    </form>
+                    <ChatInput
+                        handleSubmit={handleSubmit}
+                        toggleEmojiPicker={toggleEmojiPicker}
+                        showEmojiPicker={showEmojiPicker}
+                        handleEmojiClick={handleEmojiClick}
+                        message={message}
+                        setMessage={setMessage}
+                        handleTyping={handleTyping}
+                        handleStopTyping={handleStopTyping}
+                        replyMessage={replyMessage}
+                        setReplyMessage={setReplyMessage}
+                    />
                 </div>
             </div>
             <ToastContainer />
