@@ -616,3 +616,68 @@
 // };
 
 // export default Chat;
+
+
+
+
+// const handleAction = (action, message, _id) => {
+//     if (action === 'Copy') {
+//         handleCopy(message);
+//     }
+//     else if (action === 'Reply') {
+//         handleReply(message);
+//     }
+//     else if (action === 'Delete') {
+//         handleDelete(_id);
+//         setOpenToggle(false);
+//     }
+//     else if (action === 'Forward') {
+//         handleForwardMessage(_id, users, messages);
+//     }
+// }
+
+// const handleCopy = async (message) => {
+//     try {
+//         await navigator.clipboard.writeText(message);
+//         toast.success('Message copied to clipboard!');
+//         setOpenToggle(false);
+//     } catch (err) {
+//         console.error('Failed to copy text: ', err);
+//     }
+// };
+
+// const handleReply = async (replyMessage) => {
+//     setReplyMessage(replyMessage);
+//     setOpenToggle(false);
+// };
+
+// const handleDelete = async (_id) => {
+//     if (!_id) {
+//         toast.error('invalid message id');
+//         return;
+//     }
+//     try {
+//         const response = await axios.delete(`${baseUrl}/user/deleteMessage/${_id}`);
+//         toast.success(`${response.data.message}`);
+//         const deleteMessage = messages.filter((item) => item._id !== _id);
+//         setMessages(deleteMessage)
+//     } catch (error) {
+//         if (error.response.data.status) {
+//             toast.error(`${error.response.data.message}`);
+//         }
+//         else if (error.response.status === 404) {
+//             toast.error('wrong path');
+//         }
+//         else {
+//             toast.error(`${error.response.data.message}`);
+//         }
+//     }
+// };
+
+// const handleForwardMessage = (_id, users, messages) => {
+//     console.log(_id, users, messages)
+//     // setUsers({_id, ...users, ...messages});
+//     setSelectedToggle(_id);
+//     setOpenForwardToggle(!openForwardToggle);
+//     setOpenToggle(false)
+// };

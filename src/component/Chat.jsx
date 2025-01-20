@@ -8,8 +8,8 @@ import ChatInput from './ChatInput';
 import Message from './Message';
 
 
-// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
-const baseUrl = "http://localhost:3000";
+const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+// const baseUrl = "http://localhost:3000";
 
 
 const Chat = () => {
@@ -34,6 +34,7 @@ const Chat = () => {
     const [selectedToggle, setSelectedToggle] = useState(false);
     const [forwardTo, setForwardTo] = useState('');
     const [filteredUsers, setFilteredUsers] = useState([]);
+    const [pinnedMessage, setPinnedMessage] = useState(null);
 
     const time = new Date().toLocaleTimeString();
 
@@ -182,6 +183,7 @@ const Chat = () => {
             const response = await axios.get(`${baseUrl}/user/getMessage?userId=${userId}&receiverId=${senderId}`);
             if (response.data.status) {
                 setMessages(response.data.messages);
+                // console.log(response.data.messages);
             }
         } catch (error) {
             console.error('Error fetching messages:', error);
@@ -286,8 +288,8 @@ const Chat = () => {
     };
 
 
-
-    const handleAction = (action, message, _id) => {
+    // _id = messageId
+    const handleAction = (action, message, _id, receiverId, senderId, users) => {
         if (action === 'Copy') {
             handleCopy(message);
         }
@@ -300,6 +302,9 @@ const Chat = () => {
         }
         else if (action === 'Forward') {
             handleForwardMessage(_id, users);
+        }
+        else if (action === 'Pin') {
+            handlePinnedMessage(_id, receiverId, senderId, users)
         }
     }
 
@@ -341,6 +346,38 @@ const Chat = () => {
         }
     };
 
+    const handlePinnedMessage = async (_id, receiverId, senderId, users) => {
+        const payload = { _id, receiverId: users, senderId };
+        // const payload = {_id, receiverId, senderId, users};
+        console.log(payload)
+        try {
+            const response = await axios.post(`${baseUrl}/user/pinMessage`, payload, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                receiverId: receiverId,
+                senderId: senderId,
+                messageId: _id
+            });
+            console.log(response.data);
+            setPinnedMessage(response.data.pinnedMessages[0]);
+            if (response.data.status) {
+                toast.success('Message pinned successfully');
+            }
+            else {
+                toast.error('Something went wrong');
+            }
+        }
+        catch (error) {
+            if (error.response.status === 400) {
+                toast.error('wrong path');
+            }
+            else {
+                toast.error(`${error.response.data.message}`);
+            }
+        }
+    }
+
     const handleForwardMessage = (_id, users) => {
         setUsers(users);
         setSelectedToggle(_id);
@@ -357,13 +394,13 @@ const Chat = () => {
 
     const handleForwardTo = (e) => {
         const inputValue = e.target.value;
-        setForwardTo(inputValue); 
+        setForwardTo(inputValue);
         const filteredUsers = users.filter((user) =>
-            user.username.toLowerCase().includes(inputValue.toLowerCase()) 
+            user.username.toLowerCase().includes(inputValue.toLowerCase())
         );
         setFilteredUsers(filteredUsers);
     };
-    
+
 
 
     const forwardMessage = async (username, receiverId) => {
@@ -391,6 +428,37 @@ const Chat = () => {
                         {selectedUser ? (
                             <>
                                 <h3 className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 fixed w-full py-6 p-3 z-20">Chatting with {selectedUser.username}</h3>
+
+                                {
+                                    pinnedMessage && selectedUser.username && (
+                                        <div className="fixed w-full top-[10%] z-20 p-1 bg-gray-100 border-t border-gray-300 flex gap-5 px-5 items-center mb-4">
+                                            {/* Check if the sender is the current user or the selected user */}
+                                            {pinnedMessage.senderId === userId ? (
+                                                <div className="flex gap-5 text-xl font-semibold text-gray-900">
+                                                    {/* Pinned message content for the sender */}
+                                                    <span className="text-sm text-dark">{pinnedMessage.content}</span>
+                                                    <span className="text-sm">
+                                                        {pinnedMessage.timestamp
+                                                            ? new Date(pinnedMessage.timestamp).toLocaleTimeString()
+                                                            : null}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex gap-5 text-xl font-semibold text-gray-900">
+                                                    {/* Pinned message content for the receiver */}
+                                                    <span className="text-sm text-dark">{pinnedMessage.content}</span>
+                                                    <span className="text-sm">
+                                                        {pinnedMessage.timestamp
+                                                            ? new Date(pinnedMessage.timestamp).toLocaleTimeString()
+                                                            : null}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                }
+
+
                                 {isTyping && <p className='text-xl font-bold right-10 text-blue-900 absolute top-10 z-50'>{selectedUser.username} typing...</p>}
                                 <div className="space-y-2 py-[12%]" id='scroll'>
                                     {messages.map((msg, index) => (
@@ -418,6 +486,10 @@ const Chat = () => {
                                             setForwardTo={setForwardTo}
                                             setMessages={setMessages}
                                             messages={messages}
+                                            // displayUsers={displayUsers}
+                                            // setDisplayUsers={setDisplayUsers}
+                                            // handlePinnedMessage={handlePinnedMessage}
+                                            pinnedMessage={pinnedMessage}
                                         />
                                     ))}
                                 </div>
