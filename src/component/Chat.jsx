@@ -114,6 +114,7 @@ const Chat = () => {
         };
     }, []);
 
+
     const fetchOnlineUsers = async (initialSocket) => {
         initialSocket.on('update-online-users', (onlineUsersIds) => {
             // console.log(onlineUsersIds)
@@ -289,7 +290,7 @@ const Chat = () => {
 
 
     // _id = messageId
-    const handleAction = (action, message, _id, receiverId, senderId, users) => {
+    const handleAction = (action, message, _id, receiverId, senderId) => {
         if (action === 'Copy') {
             handleCopy(message);
         }
@@ -304,7 +305,8 @@ const Chat = () => {
             handleForwardMessage(_id, users);
         }
         else if (action === 'Pin') {
-            handlePinnedMessage(_id, receiverId, senderId, users)
+            handlePinnedMessage(_id, receiverId, senderId)
+            setOpenToggle(false);
         }
     }
 
@@ -346,37 +348,53 @@ const Chat = () => {
         }
     };
 
-    const handlePinnedMessage = async (_id, receiverId, senderId, users) => {
-        const payload = { _id, receiverId: users, senderId };
-        // const payload = {_id, receiverId, senderId, users};
-        console.log(payload)
+    const handlePinnedMessage = async (_id, receiverId, senderId) => {
+        console.log(senderId);
         try {
-            const response = await axios.post(`${baseUrl}/user/pinMessage`, payload, {
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                receiverId: receiverId,
+            const response = await axios.post(`${baseUrl}/user/pinMessage`, {
+                _id: _id,
                 senderId: senderId,
-                messageId: _id
+                receiverId: receiverId,
             });
-            console.log(response.data);
-            setPinnedMessage(response.data.pinnedMessages[0]);
-            if (response.data.status) {
-                toast.success('Message pinned successfully');
+
+            if (response.data.status === "success") {
+                console.log("Message pinned successfully:", response.data);
+                fetchPinnedMessages(senderId, receiverId)
+            } else {
+                console.error("Failed to pin message:", response.data.error);
+                toast.error(`${response.data.error.message}`)
             }
-            else {
-                toast.error('Something went wrong');
-            }
+        } catch (error) {
+            console.error("Error pinning message:", error);
+            toast.error(`${error.response.data.message}`)
         }
-        catch (error) {
-            if (error.response.status === 400) {
-                toast.error('wrong path');
+    };
+
+    const fetchPinnedMessages = async (senderId, receiverId) => {
+        console.log(senderId, receiverId)
+        try {
+            const response = await axios.get(`${baseUrl}/user/getPinMessage`, {
+                params: {
+                    userId: senderId,
+                    receiverId: receiverId,
+                },
+            });
+
+            if (response.data) {
+                console.log("Pinned messages fetched successfully:", response.data.pinMessage);
+                toast.success("Pinned message added successfully!");
+                setPinnedMessage(response?.data?.pinMessage);
+                //   setPinnedMessage((prevState) => [...prevState, response.data]);
+            } else {
+                console.error("Failed to fetch pinned messages:", response.data.error);
+                toast.error("Failed to add pinned message!");
             }
-            else {
-                toast.error(`${error.response.data.message}`);
-            }
+        } catch (error) {
+            console.error("Error fetching pinned messages:", error);
+            toast.error("Failed to add pinned message!");
         }
-    }
+    };
+
 
     const handleForwardMessage = (_id, users) => {
         setUsers(users);
@@ -429,34 +447,41 @@ const Chat = () => {
                             <>
                                 <h3 className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 fixed w-full py-6 p-3 z-20">Chatting with {selectedUser.username}</h3>
 
-                                {
-                                    pinnedMessage && selectedUser.username && (
-                                        <div className="fixed w-full top-[10%] z-20 p-1 bg-gray-100 border-t border-gray-300 flex gap-5 px-5 items-center mb-4">
-                                            {/* Check if the sender is the current user or the selected user */}
-                                            {pinnedMessage.senderId === userId ? (
-                                                <div className="flex gap-5 text-xl font-semibold text-gray-900">
-                                                    {/* Pinned message content for the sender */}
-                                                    <span className="text-sm text-dark">{pinnedMessage.content}</span>
-                                                    <span className="text-sm">
-                                                        {pinnedMessage.timestamp
-                                                            ? new Date(pinnedMessage.timestamp).toLocaleTimeString()
-                                                            : null}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex gap-5 text-xl font-semibold text-gray-900">
-                                                    {/* Pinned message content for the receiver */}
-                                                    <span className="text-sm text-dark">{pinnedMessage.content}</span>
-                                                    <span className="text-sm">
-                                                        {pinnedMessage.timestamp
-                                                            ? new Date(pinnedMessage.timestamp).toLocaleTimeString()
-                                                            : null}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )
-                                }
+                                {pinnedMessage && pinnedMessage.length > 0 && selectedUser.username && (
+                                    <div className="absolute w-full top-[10%] z-20 bg-gray-100 border-t border-gray-300 flex flex-col gap-2 px-5 mb-4">
+                                        <button onClick={() => setPinnedMessage([])} className="text-blue-900 text-sm font-semibold">
+                                            Clear Pinned Messages
+                                        </button>
+                                        {pinnedMessage.map((pinnedMessage) => (
+                                            <div key={pinnedMessage._id} className="flex gap-5 p-1 items-center">
+                                                {pinnedMessage.senderId === userId ? (
+                                                    <div className="flex gap-5 text-xl font-semibold text-gray-900">
+                                                        <span className="text-sm text-dark">{pinnedMessage.content}</span>
+
+                                                        <span className="text-sm">
+                                                            {pinnedMessage.timestamp
+                                                                ? new Date(pinnedMessage.timestamp).toLocaleTimeString()
+                                                                : null}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-5 text-xl font-semibold text-gray-900">
+                                                        <span className="text-sm text-dark">{pinnedMessage.content}</span>
+
+                                                        <span className="text-sm">
+                                                            {pinnedMessage.timestamp
+                                                                ? new Date(pinnedMessage.timestamp).toLocaleTimeString()
+                                                                : null}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+
+
 
 
                                 {isTyping && <p className='text-xl font-bold right-10 text-blue-900 absolute top-10 z-50'>{selectedUser.username} typing...</p>}

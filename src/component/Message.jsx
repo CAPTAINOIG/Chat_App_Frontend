@@ -29,17 +29,20 @@ const Message = ({
     displayUsers,
 }) => (
     <div
-        ref={(el) => {
-            if (el) {
-                messageRefs.current[msg._id] = el;
-            }
-        }}
+        // ref={(el) => {
+        //     if (el) {
+        //         messageRefs.current[msg._id] = el;
+        //     }
+        // }}
         className={`flex group ${msg.senderId === userId ? 'justify-end' : 'justify-start'} p-2`}
     >
         <div className={`p-2 mb-5 rounded relative border-2 border-green-500 max-w-[70%] min-w-[30%] ${msg.senderId === userId ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}`}>
             <div className="flex gap-1">
                 <strong>{msg.senderId === userId ? 'You' : selectedUser.username}:</strong>
                 <p>{msg.content}</p>
+                <em className="text-sm text-gray-500">
+                {msg.timestamp && new Date(msg?.timestamp).toLocaleTimeString()}
+            </em>
             </div>
 
             {msg.replyTo && (
@@ -51,9 +54,9 @@ const Message = ({
                 </div>
             )}
 
-            <em className="text-sm text-gray-500">
+            {/* <em className="text-sm text-gray-500">
                 {msg.timestamp ? new Date(msg?.timestamp).toLocaleTimeString() : null}
-            </em>
+            </em> */}
 
             {!openForwardToggle && (
                 <div onClick={() => handleToggle(msg?._id)} className="group cursor-pointer">
@@ -83,7 +86,7 @@ const Message = ({
                         <div
                             key={index}
                             className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-gray-300 rounded-full"
-                            onClick={() => handleAction(item.text, msg.content, msg._id, msg?.receiverId, msg?.senderId, msg?.users)}
+                            onClick={() => handleAction(item.text, msg.content, msg._id, msg?.receiverId, msg?.senderId)}
                         >
                             {item?.icon}
                             <span>{item?.text}</span>
