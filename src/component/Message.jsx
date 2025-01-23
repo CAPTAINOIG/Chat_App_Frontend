@@ -27,7 +27,9 @@ const Message = ({
     setFilteredUsers,
     setForwardTo, 
     displayUsers,
+    newData
 }) => (
+
     <div
         // ref={(el) => {
         //     if (el) {
@@ -54,12 +56,8 @@ const Message = ({
                 </div>
             )}
 
-            {/* <em className="text-sm text-gray-500">
-                {msg.timestamp ? new Date(msg?.timestamp).toLocaleTimeString() : null}
-            </em> */}
-
             {!openForwardToggle && (
-                <div onClick={() => handleToggle(msg?._id)} className="group cursor-pointer">
+                <div onClick={() => handleToggle(msg?.messageId)} className="group cursor-pointer">
                     <span
                         className={`${msg.senderId === userId
                                 ? 'absolute top-[5%] left-[-14%] p-2 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 hidden group-hover:flex'
@@ -71,7 +69,7 @@ const Message = ({
                 </div>
             )}
 
-            {openToggle && selectedMsg === msg._id && (
+            {openToggle && selectedMsg === msg?.messageId && (
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -82,11 +80,11 @@ const Message = ({
                             : 'absolute top-[0%] right-[-64%] w-1/2 p-2 z-10 bg-blue-200'
                         }`}
                 >
-                    {data.map((item, index) => (
+                    {data?.map((item, index) => (
                         <div
                             key={index}
                             className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-gray-300 rounded-full"
-                            onClick={() => handleAction(item.text, msg.content, msg._id, msg?.receiverId, msg?.senderId)}
+                            onClick={() => handleAction(item?.text, msg.content, msg?.messageId, msg?.receiverId, msg?.senderId)}
                         >
                             {item?.icon}
                             <span>{item?.text}</span>
@@ -95,7 +93,7 @@ const Message = ({
                 </motion.div>
             )}
 
-            {openForwardToggle && selectedToggle === msg._id && (
+            {openForwardToggle && selectedToggle === msg?.messageId && (
                 <ForwardMessage
                     users={users}
                     forwardTo={forwardTo}

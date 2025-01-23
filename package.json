@@ -21,7 +21,9 @@
     "react-spinners": "^0.14.1",
     "react-toastify": "^10.0.5",
     "socket.io-client": "^4.7.5",
-    "yup": "^1.4.0"
+    "uuid": "^11.0.5",
+    "yup": "^1.4.0",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

@@ -7,7 +7,6 @@ import UserList from './UserList';
 import ChatInput from './ChatInput';
 import Message from './Message';
 import useMessageStore from '../store/chat';
-import { v4 as uuidv4 } from 'uuid';
 
 
 // const baseUrl = "https://chat-app-backend-seuk.onrender.com";
@@ -107,17 +106,11 @@ const Chat = () => {
             initialSocket.emit('getUsers', { token: localStorage.getItem('userToken') });
 
             initialSocket.on('getUsers', (data) => {
-                console.log('getUsers event received on frontend:', data);
                 if (data.status) {
                     const user = data.users.find(u => u._id === lastChattedUserId);
                     setSelectedUser(user);
                 }
             });
-            // Listen for new messages
-            initialSocket.on('newMessage', (message) => {
-                console.log('New message received on frontend:', message);
-               setMessages((prevMessages) => [...prevMessages, message]);
-           });
         }
 
         // step 4 : listen to online users. endpoint to get online users
@@ -198,28 +191,34 @@ const Chat = () => {
     };
 
 
-    const fetchMessages = async (senderId) => {
+    const fetchMessages = async (senderId, receiverId) => {
         setMessages([]);
         try {
             const response = await axios.get(`${baseUrl}/user/getMessage?userId=${userId}&receiverId=${senderId}`);
             if (response.data.status) {
-                console.log(response.data.messages);
                 setMessages(response.data.messages);
-                // updateMessage({messages: response.data.messages});
+                console.log(response.data.messages);
+                updateMessage({messages: response.data.messages});
             }
         } catch (error) {
             console.error('Error fetching messages:', error);
         }
     };
 
+    useEffect(() => {
+        if (receiverId) {
+            console.log(receiverId);
+            fetchMessages(receiverId);
+        }
+    }, [receiverId]);
+    
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const messageId = uuidv4();
         const payload = {
             senderId: userId,
             receiverId,
             replyTo: replyMessage,
-            messageId: messageId,
             content: message,
             users: [receiverId, userId],
             timestamp: new Date()
@@ -227,10 +226,17 @@ const Chat = () => {
         if (message && receiverId) {
             try {
                 socket.emit('chat message', payload);
-                setMessages((prevMessages) => [...prevMessages, payload]);
+                // socket.emit('chat message', { senderId: userId, receiverId, replyTo: replyMessage, content: message, users: [receiverId, userId] });
+
+                setMessages((prevMessages) => [
+                    ...prevMessages,
+                    // { senderId: userId, receiverId, content: message,  timestamp: new Date() }
+                    payload
+                ]);
                 setMessage('');
                 setReplyMessage('');
                 setShowEmojiPicker(false);
+
             } catch (error) {
                 console.error('Error sending message:', error);
             }
@@ -281,10 +287,10 @@ const Chat = () => {
         setOpenForwardToggle(false)
     };
 
-    const handleToggle = (messageId) => {
-        // console.log(messageId)
+    const handleToggle = (msgId) => {
+        console.log(msgId);
         setOpenToggle(!openToggle);
-        setSelectedMsg(messageId);
+        setSelectedMsg(msgId);
     }
 
     const toggleEmojiPicker = () => {
@@ -306,7 +312,7 @@ const Chat = () => {
 
 
     // _id = messageId
-    const handleAction = (action, message, messageId, receiverId, senderId) => {
+    const handleAction = (action, message, _id, receiverId, senderId) => {
         if (action === 'Copy') {
             handleCopy(message);
         }
@@ -314,18 +320,18 @@ const Chat = () => {
             handleReply(message);
         }
         else if (action === 'Delete') {
-            handleDelete(messageId);
+            handleDelete(_id);
             setOpenToggle(false);
         }
         else if (action === 'Forward') {
             handleForwardMessage(_id, users);
         }
         else if (action === 'Pin') {
-            handlePinnedMessage(messageId, receiverId, senderId)
+            handlePinnedMessage(_id, receiverId, senderId)
             setOpenToggle(false);
         }
         else if (action === 'Unpin') {
-            handleUnPinnedMessage(messageId, receiverId, senderId)
+            handleUnPinnedMessage(_id, receiverId, senderId)
             setOpenToggle(false);
         }
     }
@@ -345,16 +351,15 @@ const Chat = () => {
         setOpenToggle(false);
     };
 
-    const handleDelete = async (messageId) => {
-        console.log(messageId)
-        if (!messageId) {
+    const handleDelete = async (_id) => {
+        if (!_id) {
             toast.error('invalid message id');
             return;
         }
         try {
-            const response = await axios.delete(`${baseUrl}/user/deleteMessage/${messageId}`);
+            const response = await axios.delete(`${baseUrl}/user/deleteMessage/${_id}`);
             toast.success(`${response.data.message}`);
-            const deleteMessage = messages.filter((item) => item.messageId !== messageId);
+            const deleteMessage = messages.filter((item) => item._id !== _id);
             setMessages(deleteMessage)
         } catch (error) {
             if (error.response.data.status) {
@@ -369,15 +374,14 @@ const Chat = () => {
         }
     };
 
-    const handlePinnedMessage = async (messageId, receiverId, senderId) => {
-        console.log(messageId, receiverId, senderId)
+    const handlePinnedMessage = async (_id, receiverId, senderId) => {
+        console.log(_id, receiverId, senderId)
         try {
             const response = await axios.post(`${baseUrl}/user/pinMessage`, {
-                messageId: messageId,
+                _id: _id,
                 senderId: senderId,
                 receiverId: receiverId,
             });
-            console.log(response)
 
             if (response.data.status === "success") {
                 fetchPinnedMessages(senderId, receiverId)
@@ -385,14 +389,13 @@ const Chat = () => {
                 toast.error(`${response.data.error.message}`)
             }
         } catch (error) {
-            console.log(error)
             toast.error(`${error.response.data.message}`)
         }
     };
 
-    const handleUnPinnedMessage = async (messageId, receiverId, senderId) => {
+    const handleUnPinnedMessage = async (_id, receiverId, senderId) => {
         try {
-            const response = await axios.post(`${baseUrl}/user/unpinMessage`, {messageId: messageId, senderId: senderId, receiverId: receiverId,});
+            const response = await axios.post(`${baseUrl}/user/unpinMessage`, {_id: _id, senderId: senderId, receiverId: receiverId,});
             if (response.data.status === "success") {
                 toast.success(`${response.data.message}`)
                 setPinnedMessage(response?.data?.pinMessage);
