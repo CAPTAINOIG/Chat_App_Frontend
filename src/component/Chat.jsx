@@ -8,19 +8,20 @@ import ChatInput from './ChatInput';
 import Message from './Message';
 import useMessageStore from '../store/chat';
 import { v4 as uuidv4 } from 'uuid';
+import ProfilePic from './ProfilePic';
 
 
-const baseUrl = "https://chat-app-backend-seuk.onrender.com";
-// const baseUrl = "http://localhost:3000";
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+const baseUrl = "http://localhost:3000";
 
 
 const Chat = () => {
     const messageRefs = useRef({});
     const username = localStorage.getItem('username');
     const userId = localStorage.getItem('userId');
-    
-   const updateMessage = useMessageStore((state) => state.updateMessage);
-   const newData = useMessageStore((state) => state.data.messages);
+
+    const updateMessage = useMessageStore((state) => state.updateMessage);
+    const newData = useMessageStore((state) => state.data.messages);
 
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
@@ -116,8 +117,8 @@ const Chat = () => {
             // Listen for new messages
             initialSocket.on('newMessage', (message) => {
                 console.log('New message received on frontend:', message);
-               setMessages((prevMessages) => [...prevMessages, message]);
-           });
+                setMessages((prevMessages) => [...prevMessages, message]);
+            });
         }
 
         // step 4 : listen to online users. endpoint to get online users
@@ -203,7 +204,6 @@ const Chat = () => {
         try {
             const response = await axios.get(`${baseUrl}/user/getMessage?userId=${userId}&receiverId=${senderId}`);
             if (response.data.status) {
-                console.log(response.data.messages);
                 setMessages(response.data.messages);
                 // updateMessage({messages: response.data.messages});
             }
@@ -305,7 +305,6 @@ const Chat = () => {
     };
 
 
-    // _id = messageId
     const handleAction = (action, message, messageId, receiverId, senderId) => {
         if (action === 'Copy') {
             handleCopy(message);
@@ -392,7 +391,7 @@ const Chat = () => {
 
     const handleUnPinnedMessage = async (messageId, receiverId, senderId) => {
         try {
-            const response = await axios.post(`${baseUrl}/user/unpinMessage`, {messageId: messageId, senderId: senderId, receiverId: receiverId,});
+            const response = await axios.post(`${baseUrl}/user/unpinMessage`, { messageId: messageId, senderId: senderId, receiverId: receiverId, });
             if (response.data.status === "success") {
                 toast.success(`${response.data.message}`)
                 setPinnedMessage(response?.data?.pinMessage);
@@ -474,7 +473,15 @@ const Chat = () => {
                     <div className="flex-1">
                         {selectedUser ? (
                             <>
-                                <h3 className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 fixed w-full py-6 p-3 z-20">Chatting with {selectedUser.username}</h3>
+                            <div className='flex items-center justify-between px-10 py-5 bg-white'>
+                                <div>
+                                {/* <div className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 w-full py-6 p-3 z-20"> */}
+                                    <p className=''>Chatting with {selectedUser.username}</p>
+                                </div>
+                                <div className=' z-50'>
+                                    <ProfilePic />
+                                </div>
+                            </div>
 
                                 {pinnedMessage && pinnedMessage.length > 0 && selectedUser.username && (
                                     <div className="absolute w-full top-[10%] z-20 bg-gray-100 border-t border-gray-300 flex flex-col gap-2 px-5 mb-4">

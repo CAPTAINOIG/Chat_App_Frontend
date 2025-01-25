@@ -7,11 +7,11 @@ const UserList = ({ users, handleUserClick }) => (
             {users.map((item, i) => (
                 <div
                     key={i}
-                    className="p-2 cursor-pointer hover:bg-gray-200 rounded bg-gray-100 bg-opacity-50"
+                    className="p-2 cursor-pointer hover:bg-gray-200 hover:text-black text-white rounded bg-gray-100 bg-opacity-50"
                     onClick={() => handleUserClick(item)}
                 >
                     {item.username}
-                    <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`ml-2 ${item.online ? 'text-green-500' : 'text-red-300'}`}>
                         ({item.online ? 'Online' : 'Offline'})
                     </span>
                 </div>

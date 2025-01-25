@@ -38,8 +38,13 @@ const Message = ({
         // }}
         className={`flex group ${msg.senderId === userId ? 'justify-end' : 'justify-start'} p-2`}
     >
-        <div className={`p-2 mb-5 rounded relative border-2 border-green-500 max-w-[70%] min-w-[30%] ${msg.senderId === userId ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}`}>
-            <div className="flex gap-1">
+        <div className={`p-2 mb-5 rounded relative max-w-[70%] min-w-[30%] ${msg.senderId === userId ? 'bg-blue-200 text-blue-800 ' : 'bg-gray-200 text-gray-800'}`}  style={{
+              borderBottomLeftRadius: msg.senderId === userId ? "20px" : "5px",
+              borderBottomRightRadius: msg.senderId === userId ? "5px" : "20px",
+              borderTopLeftRadius: "20px",
+              borderTopRightRadius: "20px",
+            }}>
+            <div className="flex gap-1 items-center px-2">
                 <strong>{msg.senderId === userId ? 'You' : selectedUser.username}:</strong>
                 <p>{msg.content}</p>
                 <em className="text-sm text-gray-500">
