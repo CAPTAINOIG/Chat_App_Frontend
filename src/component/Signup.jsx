@@ -33,6 +33,7 @@ const Signup = () => {
             .matches(/(?=.*[0-9])/, "Must include a number")
             .matches(/(?=.{8,})/, "Must not be less than 8 characters")
             .required("Password is required"),
+            number: yup.string().required("Phone number is required"),
     });
 
     const formik = useFormik({
@@ -40,6 +41,7 @@ const Signup = () => {
             username: "",
             email: "",
             password: "",
+            number: "",
         },
         validationSchema,
         onSubmit: async (values) => {
@@ -123,6 +125,24 @@ const Signup = () => {
                         <span onClick={togglePasswordVisibility} className="absolute top-[42px] right-5 cursor-pointer">
                             {!passwordVisible ? <IoEyeSharp /> : <BsEyeSlashFill />}
                         </span>
+                    </div>
+                    <div className="h-[80px] relative my-3">
+                        <label htmlFor="number" className="block text-sm font-medium text-gray-700">
+                            Phone Number
+                        </label>
+                        <input
+                            type="number"
+                            name="number"
+                            id="number"
+                            className="border-2 mt-1 border-blue-800 py-2 px-4 w-full focus:outline-blue-800"
+                            placeholder="Phone Number"
+                            onBlur={formik.handleBlur}
+                            onChange={formik.handleChange}
+                            value={formik.values.number}
+                        />
+                         {formik.touched.number && formik.errors.number && (
+                            <span className="text-red-500 my-1">{formik.errors.number}</span>
+                        )}
                     </div>
                     <div className="flex items-center justify-between">
                         <button

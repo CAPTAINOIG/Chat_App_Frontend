@@ -11,8 +11,8 @@ import { v4 as uuidv4 } from 'uuid';
 import ProfilePic from './ProfilePic';
 
 
-// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
-const baseUrl = "http://localhost:3000";
+const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+// const baseUrl = "http://localhost:3000";
 
 
 const Chat = () => {
@@ -41,6 +41,8 @@ const Chat = () => {
     const [forwardTo, setForwardTo] = useState('');
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [pinnedMessage, setPinnedMessage] = useState(null);
+    const [accountOwner, setAccountOwner] = useState(false);
+    const [image, setImage] = useState(null)
 
     const time = new Date().toLocaleTimeString();
 
@@ -164,10 +166,12 @@ const Chat = () => {
         // step 2: listen to users or get all users from the server
         socket.on('getUsers', (data) => {
             if (data.status) {
+                const owner = data.users.find((user) => user._id === userId)
+                setAccountOwner(owner)
                 // filter out the user who is chatting with i.e d owner of acct.
-                const filteredUsers = data.users.filter((user) => user._id !== userId)
+                // const filteredUsers = data.users.filter((user) => user._id !== userId)
                 // map the filtered users and add online status
-                const updatedUsers = filteredUsers.map((user => ({
+                const updatedUsers = data.users.map((user => ({
                     ...user,
                     // add online status
                     online: onlineUsers.includes(user._id)
@@ -392,6 +396,7 @@ const Chat = () => {
     const handleUnPinnedMessage = async (messageId, receiverId, senderId) => {
         try {
             const response = await axios.post(`${baseUrl}/user/unpinMessage`, { messageId: messageId, senderId: senderId, receiverId: receiverId, });
+            console.log(response)
             if (response.data.status === "success") {
                 toast.success(`${response.data.message}`)
                 setPinnedMessage(response?.data?.pinMessage);
@@ -467,21 +472,24 @@ const Chat = () => {
         <div className='background'>
             <div className="flex flex-col md:flex-row h-screen">
 
-                <UserList users={users} handleUserClick={handleUserClick} />
+                <UserList users={users} handleUserClick={handleUserClick} accountOwner={accountOwner} image={image} />
 
                 <div className="flex-1 flex flex-col bg-opacity-80" id='scroll-container'>
                     <div className="flex-1">
                         {selectedUser ? (
                             <>
-                            <div className='flex items-center justify-between px-10 py-5 bg-white'>
-                                <div>
-                                {/* <div className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 w-full py-6 p-3 z-20"> */}
-                                    <p className=''>Chatting with {selectedUser.username}</p>
+                                <div className='flex items-center justify-between px-10 py-5 bg-white'>
+                                    <div>
+                                        {/* <div className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 w-full py-6 p-3 z-20"> */}
+                                        <p className=''>Chatting with {selectedUser.username}</p>
+                                        <p className={`ml-15 ${selectedUser.online ? 'text-green-500' : 'text-red-300'}`}>
+                                            ({selectedUser.online ? 'Online' : 'Offline'})
+                                        </p>
+                                    </div>
+                                    <div className='z-50'>
+                                        <ProfilePic selectedUser={receiverId} image={image} setImage={setImage}/>
+                                    </div>
                                 </div>
-                                <div className=' z-50'>
-                                    <ProfilePic />
-                                </div>
-                            </div>
 
                                 {pinnedMessage && pinnedMessage.length > 0 && selectedUser.username && (
                                     <div className="absolute w-full top-[10%] z-20 bg-gray-100 border-t border-gray-300 flex flex-col gap-2 px-5 mb-4">
@@ -525,6 +533,7 @@ const Chat = () => {
                                             selectedUser={selectedUser}
                                             messageRefs={messageRefs}
                                             openToggle={openToggle}
+                                            setOpenToggle={setOpenToggle}
                                             selectedMsg={selectedMsg}
                                             handleToggle={handleToggle}
                                             data={data}

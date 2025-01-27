@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import ForwardMessage from './ForwardMessage';
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { motion } from 'framer-motion';
@@ -10,6 +10,7 @@ const Message = ({
     selectedUser,
     messageRefs,
     openToggle,
+    setOpenToggle,
     selectedMsg,
     handleToggle,
     data,
@@ -20,16 +21,28 @@ const Message = ({
     handleForwardTo,
     forwardMessage,
     setOpenForwardToggle,
-    users,
     scrollToMessage,
     handleForwardClick,
     filteredUsers,
     setFilteredUsers,
     setForwardTo, 
     displayUsers,
-    newData
-}) => (
-
+    newData,
+    users,
+}) => {
+        const dropdownRef = useRef(null)
+        useEffect(() => {
+            const handleClickOutside = (event) => {
+                if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                    setOpenToggle(false);
+                }
+            };
+            document.addEventListener("mousedown", handleClickOutside);
+            return () => {
+                document.removeEventListener("mousedown", handleClickOutside);
+            };
+        }, []);
+        return (
     <div
         // ref={(el) => {
         //     if (el) {
@@ -44,7 +57,7 @@ const Message = ({
               borderTopLeftRadius: "20px",
               borderTopRightRadius: "20px",
             }}>
-            <div className="flex gap-1 items-center px-2">
+            <div className="flex gap-1 itHems-center px-2">
                 <strong>{msg.senderId === userId ? 'You' : selectedUser.username}:</strong>
                 <p>{msg.content}</p>
                 <em className="text-sm text-gray-500">
@@ -62,7 +75,7 @@ const Message = ({
             )}
 
             {!openForwardToggle && (
-                <div onClick={() => handleToggle(msg?.messageId)} className="group cursor-pointer">
+                <div onClick={() => handleToggle(msg?.messageId)} ref={dropdownRef} className="group cursor-pointer">
                     <span
                         className={`${msg.senderId === userId
                                 ? 'absolute top-[5%] left-[-14%] p-2 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 hidden group-hover:flex'
@@ -116,7 +129,7 @@ const Message = ({
             )}
         </div>
     </div>
-);
+)};
 
 
 export default Message
