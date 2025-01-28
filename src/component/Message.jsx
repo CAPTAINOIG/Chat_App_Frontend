@@ -30,18 +30,18 @@ const Message = ({
     newData,
     users,
 }) => {
-        const dropdownRef = useRef(null)
-        useEffect(() => {
-            const handleClickOutside = (event) => {
-                if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                    setOpenToggle(false);
-                }
-            };
-            document.addEventListener("mousedown", handleClickOutside);
-            return () => {
-                document.removeEventListener("mousedown", handleClickOutside);
-            };
-        }, []);
+        // const dropdownRef = useRef(null)
+        // useEffect(() => {
+        //     const handleClickOutside = (event) => {
+        //         if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        //             setOpenToggle(false);
+        //         }
+        //     };
+        //     document.addEventListener("mousedown", handleClickOutside);
+        //     return () => {
+        //         document.removeEventListener("mousedown", handleClickOutside);
+        //     };
+        // }, []);
         return (
     <div
         // ref={(el) => {
@@ -75,7 +75,7 @@ const Message = ({
             )}
 
             {!openForwardToggle && (
-                <div onClick={() => handleToggle(msg?.messageId)} ref={dropdownRef} className="group cursor-pointer">
+                <div onClick={() => handleToggle(msg?.messageId)} className="group cursor-pointer">
                     <span
                         className={`${msg.senderId === userId
                                 ? 'absolute top-[5%] left-[-14%] p-2 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 hidden group-hover:flex'

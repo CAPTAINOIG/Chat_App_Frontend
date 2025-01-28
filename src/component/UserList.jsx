@@ -15,8 +15,8 @@ import { TbTableShortcut } from 'react-icons/tb';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-// const baseUrl = "http://localhost:3000";
-const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+const baseUrl = "http://localhost:3000";
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
 
 
 
