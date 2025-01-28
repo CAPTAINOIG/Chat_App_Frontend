@@ -9,7 +9,7 @@ const Loader = () => {
     useEffect(() => {
       const timer = setTimeout(() => {
         setMyLoader(false)
-        navigate('/signup')
+        navigate('/landingpage')
       }, 3000);
       return () => clearTimeout(timer);
     }, [navigate]);

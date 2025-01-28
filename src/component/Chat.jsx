@@ -169,9 +169,9 @@ const Chat = () => {
                 const owner = data.users.find((user) => user._id === userId)
                 setAccountOwner(owner)
                 // filter out the user who is chatting with i.e d owner of acct.
-                // const filteredUsers = data.users.filter((user) => user._id !== userId)
+                const filteredUsers = data.users.filter((user) => user._id !== userId)
                 // map the filtered users and add online status
-                const updatedUsers = data.users.map((user => ({
+                const updatedUsers = filteredUsers.map((user => ({
                     ...user,
                     // add online status
                     online: onlineUsers.includes(user._id)
@@ -480,7 +480,6 @@ const Chat = () => {
                             <>
                                 <div className='flex items-center justify-between px-10 py-5 bg-white'>
                                     <div>
-                                        {/* <div className="text-xl font-semibold mb-4 text-gray-900 bg-gray-100 border-t border-gray-300 w-full py-6 p-3 z-20"> */}
                                         <p className=''>Chatting with {selectedUser.username}</p>
                                         <p className={`ml-15 ${selectedUser.online ? 'text-green-500' : 'text-red-300'}`}>
                                             ({selectedUser.online ? 'Online' : 'Offline'})

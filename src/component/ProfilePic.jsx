@@ -60,7 +60,6 @@ const ProfilePic = ({selectedUser, setImage, image}) => {
                 params: { userId: selectedUser },
             });
             if (response?.data?.url) {
-                console.log(response?.data?.url)
                 setImage(response?.data?.url);
                 setOpenToggle(false);
                 setLoading(false);
