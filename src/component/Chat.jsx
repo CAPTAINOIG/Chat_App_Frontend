@@ -11,8 +11,8 @@ import { v4 as uuidv4 } from 'uuid';
 import ProfilePic from './ProfilePic';
 
 
-const baseUrl = "https://chat-app-backend-seuk.onrender.com";
-// const baseUrl = "http://localhost:3000";
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+const baseUrl = "http://localhost:3000";
 
 
 const Chat = () => {

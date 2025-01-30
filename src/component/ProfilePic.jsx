@@ -6,7 +6,8 @@ import user1 from '../assets/image/user1.png';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 
-const baseUrl = "http://localhost:3000";
+// const baseUrl = "http://localhost:3000";
+const baseUrl = "https://chat-app-backend-seuk.onrender.com";
 
 const ProfilePic = ({selectedUser, setImage, image}) => {
     const accountOwner = localStorage.getItem('userId');
