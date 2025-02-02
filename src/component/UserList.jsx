@@ -140,6 +140,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         setImage(null);
         toast.info("Profile picture removed.");
     };
+    
     const handleEdit = () => {
         setEditToggle(!editToggle)
     }

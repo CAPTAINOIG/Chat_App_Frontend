@@ -486,7 +486,7 @@ const Chat = () => {
                                         </p>
                                     </div>
                                     <div className='z-50'>
-                                        <ProfilePic selectedUser={receiverId} image={image} setImage={setImage}/>
+                                        <ProfilePic selectedUser={selectedUser} image={image} setImage={setImage}/>
                                     </div>
                                 </div>
 
