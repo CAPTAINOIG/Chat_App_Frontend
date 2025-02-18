@@ -11,9 +11,7 @@ const Dashboard = () => {
   const token = localStorage.getItem('userToken');
   const userId = localStorage.getItem('userId');
   const username = localStorage.getItem('username');
-  
   const navigate = useNavigate();
-
   const endpoint = `${baseUrl}/user/dashboard`;
 
   useEffect(() => {

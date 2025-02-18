@@ -19,7 +19,6 @@ const baseUrl = "https://chat-app-backend-seuk.onrender.com";
 
 const ProfilePic = ({ selectedUser, setImage, image }) => {
     const accountOwner = localStorage.getItem('userId');
-    // const [image, setImage] = useState(null);
     const [openToggle, setOpenToggle] = useState(false);
     const [otherUsersToggle, setotherUsersToggle] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -147,7 +146,7 @@ const ProfilePic = ({ selectedUser, setImage, image }) => {
 
     return (
         <div className="relative flex flex-col items-center">
-            <label className="relative cursor-pointer" onClick={() => handleAction(selectedUser)}>
+            <label className="cursor-pointer" onClick={() => handleAction(selectedUser)}>
                 {loading ? (
                     <div className="w-14 h-14 rounded-full border-4 border-white bg-gray-300 animate-pulse"></div>
                 ) : (

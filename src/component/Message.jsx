@@ -88,7 +88,7 @@ const Message = ({
             )}
 
             {openToggle && selectedMsg === msg?.messageId && (
-                <motion.div
+                <motion.div id='message-container'
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}

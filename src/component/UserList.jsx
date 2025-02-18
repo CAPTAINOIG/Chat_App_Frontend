@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import user from '../assets/image/user.png'
 import { Tooltip } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faEdit, faEye } from '@fortawesome/free-solid-svg-icons';
 import { FiMonitor } from 'react-icons/fi';
@@ -10,18 +10,19 @@ import { MdOutlineAccountCircle } from 'react-icons/md';
 import { IoChatbubbleEllipsesOutline } from 'react-icons/io5';
 import { CiEdit, CiSettings, CiVideoOn } from 'react-icons/ci';
 import { IoIosHelpCircleOutline, IoMdInformationCircleOutline, IoMdNotificationsOutline } from 'react-icons/io';
+import { AiOutlineEdit } from 'react-icons/ai'
 import { GrStorage } from 'react-icons/gr';
 import { TbTableShortcut } from 'react-icons/tb';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-const baseUrl = "http://localhost:3000";
-// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+// const baseUrl = "http://localhost:3000";
+const baseUrl = "https://chat-app-backend-seuk.onrender.com";
 
 
 
 const UserList = ({ users, handleUserClick, accountOwner }) => {
-    
+
     const userId = localStorage.getItem('userId');
     const [image, setImage] = useState(null)
     const [openToggle, setOpenToggle] = useState(false)
@@ -29,7 +30,11 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
     const dropdownRef = useRef(null)
     const [loading, setLoading] = useState(false)
     const [viewImage, setViewImage] = useState(false);
-    
+    const [profileName, setProfileName] = useState('')
+    const [aboutMe, setAboutMe] = useState('')
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingField, setEditingField] = useState(null);
+
     let navigate = useNavigate();
 
 
@@ -95,6 +100,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
 
     useEffect(() => {
         fetchProfilePic();
+        getProfileUpdate();
     }, []);
 
 
@@ -129,6 +135,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                 setImage(response?.data?.url);
                 // setOpenToggle(false);
                 setLoading(false);
+                setEditToggle(false)
             }
         } catch (error) {
             // toast.error("Failed to fetch profile picture.");
@@ -140,7 +147,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         setImage(null);
         toast.info("Profile picture removed.");
     };
-    
+
     const handleEdit = () => {
         setEditToggle(!editToggle)
     }
@@ -155,6 +162,28 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         localStorage.removeItem('token');
         // window.location.reload();
     };
+
+    const handleUpdate = async () => {
+        const data = { profileName, aboutMe }
+        try {
+            const response = await axios.put(`${baseUrl}/user/updateProfile/${userId}`, data)
+            getProfileUpdate(userId)
+            setIsEditing(false)
+        } catch (error) {
+            toast.error("Failed to update profile.")
+        }
+    }
+
+    const getProfileUpdate = async () => {
+        try {
+            const response = await axios.get(`${baseUrl}/user/getUpdateProfile/`, {
+                params: { userId: userId },
+            })
+            setProfileName(response?.data?.userDetail?.profileName)
+            setAboutMe(response?.data?.userDetail?.aboutMe)
+        } catch (error) {
+        }
+    }
 
     return (
         <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto">
@@ -230,7 +259,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                                 <div
                                     key={index}
                                     className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-gray-300 rounded-full"
-                                    onClick={() => handleAction(item?.text, msg?.icon)}
+                                    onClick={() => handleAction(item?.text, item?.icon)}
                                 >
                                     {item?.icon}
                                     <span>{item?.text}</span>
@@ -250,16 +279,74 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                                 )}
                             </div>
                             <div>
-                                <p className="font-semibold text-xl mt-5 text-center">{accountOwner?.username}</p>
-                                <p className='text-gray-500'>About</p>
-                                <p>Astral Tech Academy|| Full stack web developer|| Sport Analyst|| Captain OIG</p>
-                                <p className='text-gray-500'>Phone number</p>
-                                <p>{accountOwner?.number}</p>
+                                <div>
+                                    <div className="font-semibold flex gap-5 items-center text-xl mt-5 text-center">
+                                        <AnimatePresence mode="wait">
+                                            {isEditing && editingField === 'profileName' ? (
+                                                <motion.input
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    required
+                                                    className="border border-default-200 bg-transparent text-lg leading-tight w-[200px] py-2 px-3 rounded-2xl"
+                                                    value={profileName}
+                                                    onChange={(e) => setProfileName(e.target.value)}
+                                                    onBlur={handleUpdate}
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <motion.p
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    onClick={() => { setIsEditing(true); setEditingField('profileName'); }}
+                                                    className="text-lg font-medium leading-tight border border-transparent hover:border-default-200 py-2 px-3 rounded-2xl cursor-pointer"
+                                                >
+                                                    {profileName || 'Enter your name'}
+                                                </motion.p>
+                                            )}
+                                        </AnimatePresence>
+                                        <div>
+                                        <AiOutlineEdit className="text-gray-500 cursor-pointer hover:text-gray-700" onClick={() => setIsEditing(true)} />
+                                        </div>
+                                    </div>
+
+                                    <p className='text-gray-500 ms-3'>About</p>
+                                    <AnimatePresence mode="wait">
+                                        {isEditing && editingField === 'aboutMe' ? (
+                                            <motion.textarea
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="w-full h-24 rounded-lg p-2 border border-default-200 bg-transparent"
+                                                placeholder="About Me"
+                                                value={aboutMe}
+                                                onChange={(e) => setAboutMe(e.target.value)}
+                                                onBlur={handleUpdate}
+                                                autoFocus
+                                            />
+                                        ) : (
+                                            <motion.p
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                onClick={() => { setIsEditing(true); setEditingField('aboutMe'); }}
+                                                className="w-full text-lg font-medium leading-tight border border-transparent hover:border-default-200 py-2 px-3 rounded-2xl cursor-pointer"
+                                            >
+                                                {aboutMe || 'Write something about yourself'}
+                                            </motion.p>
+                                        )}
+                                    </AnimatePresence>
+                                    {/* <button onClick={handleUpdate}>Update Profile</button> */}
+                                </div>
+                                <p className='text-gray-500 ms-3'>Phone number</p>
+                                <p className='ms-3'>{accountOwner?.number}</p>
                                 <div className='border border-b mt-3'></div>
                                 <button onClick={handleLogOut} className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none mt-3 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Log out</button>
                             </div>
                             <div className='group-hover:flex top-[12%] left-[42%] hidden cursor-pointer absolute items-center'>
-                                <CiEdit onClick={handleEdit} className="text-white bg-black opacity-50 p-2 rounded-full" size={40} />
+                                <CiEdit onClick={handleEdit} className="text-white bg-black opacity-50 p-2 ms-2 rounded-full" size={40} />
                             </div>
                             {editToggle && (
                                 <section className='bg-gray-200 rounded-lg absolute top-[-23%] left-[20%] w-40 h-24 items-center'>
@@ -296,11 +383,11 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                                         </button>
                                     </div>
                                     {viewImage && (
-                                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
                                             <div className="bg-white p-4 rounded-lg">
                                                 <img className="w-full h-full object-cover rounded-lg" src={viewImage} alt="Full-size Profile" />
                                                 <button
-                                                    onClick={() => setViewImage(null)} 
+                                                    onClick={() => setViewImage(null)}
                                                     className="absolute top-2 right-10 h-10 w-10 hover:text-red-600 text-white bg-gray-300 p-2 rounded-full"
                                                 >
                                                     X

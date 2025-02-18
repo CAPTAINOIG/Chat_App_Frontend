@@ -11,8 +11,8 @@ import { v4 as uuidv4 } from 'uuid';
 import ProfilePic from './ProfilePic';
 
 
-// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
-const baseUrl = "http://localhost:3000";
+const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+// const baseUrl = "http://localhost:3000";
 
 
 const Chat = () => {
@@ -321,7 +321,7 @@ const Chat = () => {
             setOpenToggle(false);
         }
         else if (action === 'Forward') {
-            handleForwardMessage(_id, users);
+            handleForwardMessage(messageId, users);
         }
         else if (action === 'Pin') {
             handlePinnedMessage(messageId, receiverId, senderId)
@@ -349,7 +349,6 @@ const Chat = () => {
     };
 
     const handleDelete = async (messageId) => {
-        console.log(messageId)
         if (!messageId) {
             toast.error('invalid message id');
             return;
@@ -396,7 +395,6 @@ const Chat = () => {
     const handleUnPinnedMessage = async (messageId, receiverId, senderId) => {
         try {
             const response = await axios.post(`${baseUrl}/user/unpinMessage`, { messageId: messageId, senderId: senderId, receiverId: receiverId, });
-            console.log(response)
             if (response.data.status === "success") {
                 toast.success(`${response.data.message}`)
                 setPinnedMessage(response?.data?.pinMessage);
@@ -429,15 +427,15 @@ const Chat = () => {
     };
 
 
-    const handleForwardMessage = (_id, users) => {
+    const handleForwardMessage = (messageId, users) => {
         setUsers(users);
-        setSelectedToggle(_id);
+        setSelectedToggle(messageId);
         setOpenForwardToggle(!openForwardToggle);
         setOpenToggle(false)
     };
 
 
-    const handleForwardClick = (_id, users) => {
+    const handleForwardClick = (messageId, users) => {
         console.log(_id, users);
         // setForwardTo(user.username);
     };
@@ -478,20 +476,22 @@ const Chat = () => {
                     <div className="flex-1">
                         {selectedUser ? (
                             <>
-                                <div className='flex items-center justify-between px-10 py-5 bg-white'>
-                                    <div>
+                                <div className='flex items-center justify-between fixed w-full z-10 px-5 py-5 bg-white'>
+                                    <div className='flex items-center'>
+                                        <div className='ms-16'>
                                         <p className=''>Chatting with {selectedUser.username}</p>
                                         <p className={`ml-15 ${selectedUser.online ? 'text-green-500' : 'text-red-300'}`}>
                                             ({selectedUser.online ? 'Online' : 'Offline'})
                                         </p>
-                                    </div>
-                                    <div className='z-50'>
-                                        <ProfilePic selectedUser={selectedUser} image={image} setImage={setImage}/>
+                                        </div>
+                                        <div className='z-50 absolute'>
+                                            <ProfilePic selectedUser={selectedUser} image={image} setImage={setImage} />
+                                        </div>
                                     </div>
                                 </div>
 
                                 {pinnedMessage && pinnedMessage.length > 0 && selectedUser.username && (
-                                    <div className="absolute w-full top-[10%] z-20 bg-gray-100 border-t border-gray-300 flex flex-col gap-2 px-5 mb-4">
+                                    <div className="absolute w-full top-[13%] z-20 bg-gray-100 border-t border-gray-300 flex flex-col gap-2 px-5 mb-4">
                                         <button onClick={() => setPinnedMessage([])} className="text-blue-900 text-sm font-semibold">
                                             Clear Pinned Messages
                                         </button>
