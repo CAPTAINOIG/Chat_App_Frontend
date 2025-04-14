@@ -16,8 +16,8 @@ import { TbTableShortcut } from 'react-icons/tb';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-// const baseUrl = "http://localhost:3000";
-const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+const baseUrl = "http://localhost:3000";
+// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
 
 
 
@@ -111,13 +111,16 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const base64 = e.target.result;
+            console.log(base64);
             try {
                 const response = await axios.post(`${baseUrl}/user/profilePicture`, {
                     userId: userId,
                     base64: base64,
                 });
+                console.log(response);
                 fetchProfilePic();
             } catch (error) {
+                console.log(error);
                 toast.error("Failed to upload image.");
                 setLoading(false);
             }
@@ -138,6 +141,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                 setEditToggle(false)
             }
         } catch (error) {
+            console.log(error);
             // toast.error("Failed to fetch profile picture.");
             setLoading(false);
         }
