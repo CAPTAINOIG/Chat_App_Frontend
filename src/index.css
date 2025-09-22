@@ -72,3 +72,13 @@
 #message-container::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+[data-sonner-toast][data-type="error"] {
+  background-color: #ca0e11 !important; /* Red */
+  color: white !important;
+}
+
+/* Success Toast */
+[data-sonner-toast][data-type="success"] {
+  background-color: #089451 !important; /* Green */
+}

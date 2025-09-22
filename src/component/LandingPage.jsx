@@ -1,11 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
-// import { Button } from "@/components/ui/button";
 import { FaWhatsapp } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+
       return (
         <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-600 text-white flex flex-col">
           <header className="p-6 flex justify-between items-center">
@@ -34,7 +34,8 @@ const LandingPage = () => {
                 A seamless messaging experience with real-time chat, media sharing, and end-to-end encryption.
               </p>
               <button onClick={() => navigate('/signin')} className="bg-white hover:bg-black text-blue-600 px-6 py-3 rounded-full font-semibold flex items-center gap-2">
-                <FaWhatsapp className="text-xl" /> Start Chatting
+                <FaWhatsapp className="text-xl" /> 
+                Start Chatting
               </button>
             </motion.div>
             <motion.img
@@ -45,7 +46,6 @@ const LandingPage = () => {
               className="max-w-xs md:max-w-md mt-6 md:mt-0 rounded-lg shadow-sm opacity-100"
             />
           </section>
-    
           <section className="bg-white text-blue-800 py-12 px-6">
             <div className="max-w-5xl mx-auto text-center">
               <h3 className="text-3xl font-bold mb-8">Why Choose Our Chat App?</h3>
@@ -65,7 +65,6 @@ const LandingPage = () => {
               </div>
             </div>
           </section>
-    
           <footer className="text-center py-6 bg-blue-700">
             <p className="text-sm">&copy; 2025 WhatsApp Chat App. All rights reserved.</p>
           </footer>
