@@ -7,6 +7,7 @@ import Dashboard from './component/Dashboard'
 import Chat from './component/Chat'
 import Loader from './component/Loader'
 import LandingPage from './component/LandingPage'
+import RichTextEditor from './component/RichTextEditor'
 
 function App() {
 
@@ -20,6 +21,7 @@ function App() {
         <Route path='/signin' element={<Signin />} />
         <Route path='/dashboard' element={<Dashboard />} />
         <Route path="/chat/:username" element={<Chat />} />
+        <Route path="/editor" element={<RichTextEditor />} />
       </Routes>
 
     </div>
