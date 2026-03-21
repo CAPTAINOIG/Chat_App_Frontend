@@ -1,9 +1,25 @@
 import React from 'react'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import {TextStyle} from '@tiptap/extension-text-style'
+import { TextStyle } from '@tiptap/extension-text-style'
+import FontFamily from '@tiptap/extension-font-family'
 
-const extensions = [StarterKit, TextStyle]
+
+const extensions = [
+  StarterKit,
+  TextStyle,
+  FontFamily.configure({
+    types: ['textStyle'], // tells Tiptap to apply fontFamily via textStyle
+  }),
+]
+
+const fonts = [
+  { label: 'Default', value: '' },
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Times New Roman', value: '"Times New Roman", serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Courier New', value: '"Courier New", monospace' },
+]
 
 const MenuBar = ({ editor }) => {
   if (!editor) return null
@@ -29,6 +45,21 @@ const MenuBar = ({ editor }) => {
 
   return (
     <div className="flex flex-wrap gap-2 p-2 border-b bg-gray-50">
+      {/* Font Family Selector */}
+      <select
+        onChange={(e) =>
+          editor.chain().focus().setFontFamily(e.target.value || null).run()
+        }
+        className="px-2 py-1 text-sm border rounded"
+        defaultValue=""
+      >
+        {fonts.map((font) => (
+          <option key={font.value} value={font.value}>
+            {font.label}
+          </option>
+        ))}
+      </select>
+
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
         disabled={!editorState.canBold}
@@ -75,11 +106,19 @@ const MenuBar = ({ editor }) => {
         Clear Nodes
       </button>
 
-      <button onClick={() => editor.chain().focus().undo().run()} disabled={!editorState.canUndo} className={btn}>
+      <button
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!editorState.canUndo}
+        className={btn}
+      >
         Undo
       </button>
 
-      <button onClick={() => editor.chain().focus().redo().run()} disabled={!editorState.canRedo} className={btn}>
+      <button
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!editorState.canRedo}
+        className={btn}
+      >
         Redo
       </button>
     </div>
@@ -91,7 +130,7 @@ const RichTextEditor = () => {
     extensions,
     content: `
       <h2>Hi there 👋</h2>
-      <p>This is a <strong>basic</strong> example using <em>Tiptap</em> in React.</p>
+      <p>This is a <strong>basic</strong> example using <em>Tiptap</em> with <u>Font Family support</u>.</p>
     `,
   })
 

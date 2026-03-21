@@ -17,14 +17,12 @@ import {
 import { AiOutlineEdit } from "react-icons/ai";
 import { GrStorage } from "react-icons/gr";
 import { TbTableShortcut } from "react-icons/tb";
-import axios from "axios";
+import axiosInstance from "../../utils/AxiosInstance";
 import { Toaster, toast } from "sonner";
-
-const baseUrl = "http://localhost:3000";
-// const baseUrl = "https://chat-app-backend-seuk.onrender.com";
+import { useAuth } from "./AuthProvider";
 
 const UserList = ({ users, handleUserClick, accountOwner }) => {
-  const userId = localStorage.getItem("userId");
+  const { userId } = useAuth();
   const [image, setImage] = useState(null);
   const [openToggle, setOpenToggle] = useState(false);
   const [editToggle, setEditToggle] = useState(false);
@@ -112,7 +110,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
       const base64 = e.target.result;
       console.log(base64);
       try {
-        const response = await axios.post(`${baseUrl}/user/profilePicture`, {
+        const response = await axiosInstance.post(`/user/profilePicture`, {
           userId: userId,
           base64: base64,
         });
@@ -130,7 +128,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
   const fetchProfilePic = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${baseUrl}/user/fetchPicture`, {
+      const response = await axiosInstance.get(`/user/fetchPicture`, {
         params: { userId: userId },
       });
       if (response?.data?.url) {
@@ -160,19 +158,15 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
   };
 
   const handleLogOut = () => {
+    logout();
     navigate("/signin");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("token");
     // window.location.reload();
   };
 
   const handleUpdate = async () => {
     const data = { profileName, aboutMe };
     try {
-      const response = await axios.put(
-        `${baseUrl}/user/updateProfile/${userId}`,
-        data
-      );
+      const response = await axiosInstance.put(`/user/updateProfile/${userId}`, data);
       getProfileUpdate(userId);
       setIsEditing(false);
     } catch (error) {
@@ -182,7 +176,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
 
   const getProfileUpdate = async () => {
     try {
-      const response = await axios.get(`${baseUrl}/user/getUpdateProfile/`, {
+      const response = await axiosInstance.get(`/user/getUpdateProfile/`, {
         params: { userId: userId },
       });
       setProfileName(response?.data?.userDetail?.profileName);

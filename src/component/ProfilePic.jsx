@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCamera, faTrash, faEdit } from "@fortawesome/free-solid-svg-icons";
-import axios from "axios";
+import axiosInstance from "../../utils/AxiosInstance";
 import user from "../assets/image/user.png";
 import React, { useEffect, useRef, useState } from "react";
 import user1 from "../assets/image/user1.png";
@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { FiMonitor } from "react-icons/fi";
 import { MdOutlineAccountCircle } from "react-icons/md";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
+import { useAuth } from "./AuthProvider";
 import { CiSettings, CiVideoOn } from "react-icons/ci";
 import {
   IoIosHelpCircleOutline,
@@ -18,11 +19,8 @@ import { GrStorage } from "react-icons/gr";
 import { TbTableShortcut } from "react-icons/tb";
 import { Toaster, toast } from "sonner";
 
-// const baseUrl = "http://localhost:3000";
-const baseUrl = "https://chat-app-backend-seuk.onrender.com";
-
 const ProfilePic = ({ selectedUser, setImage, image }) => {
-  const accountOwner = localStorage.getItem("userId");
+  const { userId } = useAuth();
   const [openToggle, setOpenToggle] = useState(false);
   const [otherUsersToggle, setotherUsersToggle] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -106,11 +104,10 @@ const ProfilePic = ({ selectedUser, setImage, image }) => {
     reader.onload = async (e) => {
       const base64 = e.target.result;
       try {
-        const response = await axios.post(`${baseUrl}/user/profilePicture`, {
+        const response = await axiosInstance.post(`/user/profilePicture`, {
           userId: selectedUser,
           base64: base64,
         });
-        // console.log(response);
         fetchProfilePic();
       } catch (error) {
         toast.error("Failed to upload image.");
@@ -123,7 +120,7 @@ const ProfilePic = ({ selectedUser, setImage, image }) => {
   const fetchProfilePic = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${baseUrl}/user/fetchPicture`, {
+      const response = await axiosInstance.get(`/user/fetchPicture`, {
         params: { userId: selectedUser },
       });
       if (response?.data?.url) {

@@ -8,23 +8,25 @@ import Chat from './component/Chat'
 import Loader from './component/Loader'
 import LandingPage from './component/LandingPage'
 import RichTextEditor from './component/RichTextEditor'
+import { AuthProvider } from './component/AuthProvider'
 
 function App() {
 
 
   return (
-    <div className='font-[Mirza]'>
-      <Routes>
-        <Route path='/' element={<Loader />} />
-        <Route path='/landingpage' element={<LandingPage />} />
-        <Route path='/signup' element={<Signup />} />
-        <Route path='/signin' element={<Signin />} />
-        <Route path='/dashboard' element={<Dashboard />} />
-        <Route path="/chat/:username" element={<Chat />} />
-        <Route path="/editor" element={<RichTextEditor />} />
-      </Routes>
-
-    </div>
+    <AuthProvider>
+      <div className='font-[Mirza]'>
+        <Routes>
+          <Route path='/' element={<Loader />} />
+          <Route path='/landingpage' element={<LandingPage />} />
+          <Route path='/signup' element={<Signup />} />
+          <Route path='/signin' element={<Signin />} />
+          <Route path='/dashboard' element={<Dashboard />} />
+          <Route path="/chat/:username" element={<Chat />} />
+          <Route path="/editor" element={<RichTextEditor />} />
+        </Routes>
+      </div>
+    </AuthProvider>
   )
 }
 

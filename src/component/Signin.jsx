@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useFormik } from "formik";
 import * as yup from "yup";
 import { ClipLoader } from "react-spinners";
@@ -9,11 +8,13 @@ import { useNavigate } from "react-router-dom";
 import GoogleAuth from "./GoogleAuth";
 import { toast, Toaster } from "sonner";
 import { signIn } from "../api/authApi";
+import useAuthStore from "../store/auth";
 
 const Signin = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { setAuth } = useAuthStore();
 
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
@@ -45,9 +46,8 @@ const Signin = () => {
       setError(null);
       try {
         const res = await signIn(values);
-        localStorage.setItem("userToken", res.token);
-        localStorage.setItem("userId", res.user._id);
-        localStorage.setItem("username", res.user.username);
+        // Use auth store instead of localStorage
+        setAuth(res.user, res.token);
         toast.success("User signed in successfully!");
         setLoading(false);
         navigate("/dashboard");

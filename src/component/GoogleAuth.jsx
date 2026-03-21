@@ -1,22 +1,22 @@
 import React from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { Toaster, toast } from "sonner";
 import { googleAuth } from "../api/authApi";
+import useAuthStore from "../store/auth";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const GoogleAuth = () => {
   const navigate = useNavigate();
+  const { setAuth } = useAuthStore();
 
   const handleSuccess = async (response) => {
     try {
       const googleToken = response.credential;
       const res = await googleAuth(googleToken);
-      localStorage.setItem("userToken", res?.userToken);
-      localStorage.setItem("username", res?.userDetail?.username);
-      localStorage.setItem("userId", res?.userDetail?._id);
+      // Use auth store instead of localStorage
+      setAuth(res?.userDetail, res?.userToken);
       toast.success(`Welcome back, ${res?.username}!`);
       navigate("/dashboard");
     } catch (err) {

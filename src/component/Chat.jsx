@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
-import axios from "axios";
+import axiosInstance from "../../utils/AxiosInstance";
 import {
   FaReply,
   FaCopy,
@@ -20,14 +20,13 @@ import { v4 as uuidv4 } from "uuid";
 import ProfilePic from "./ProfilePic";
 import { Toaster, toast } from "sonner";
 import { getMessage } from "../api/authApi";
+import { useAuth } from "./AuthProvider";
 
-const baseUrl = "https://chat-app-backend-seuk.onrender.com";
-// const baseUrl = "http://localhost:3000";
+const baseUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 const Chat = () => {
   const messageRefs = useRef({});
-  const username = localStorage.getItem("username");
-  const userId = localStorage.getItem("userId");
+  const { userId, username, token } = useAuth();
 
   const updateMessage = useMessageStore((state) => state.updateMessage);
   const newData = useMessageStore((state) => state.data.messages);
@@ -116,7 +115,7 @@ const Chat = () => {
       setReceiverId(lastChattedUserId);
       fetchMessages(lastChattedUserId);
       initialSocket.emit("getUsers", {
-        token: localStorage.getItem("userToken"),
+        token: token,
       });
 
       initialSocket.on("getUsers", (data) => {
@@ -191,7 +190,6 @@ const Chat = () => {
   const getAllUsers = async (socket) => {
     if (!socket) return;
     try {
-      const token = localStorage.getItem("userToken");
       socket.emit("getUsers", { token });
     } catch (error) {
       toast.error("Failed to fetch users");
@@ -343,49 +341,44 @@ const emitStopTyping = () => {
       return;
     }
     try {
-      const response = await axios.delete(
-        `${baseUrl}/user/deleteMessage/${messageId}`
-      );
+      const response = await axiosInstance.delete(`/user/deleteMessage/${messageId}`);
       toast.success(`${response.data.message}`);
       const deleteMessage = messages.filter(
         (item) => item.messageId !== messageId
       );
       setMessages(deleteMessage);
     } catch (error) {
-      if (error.response.data.status) {
+      if (error.response?.data?.status) {
         toast.error(`${error.response.data.message}`);
-      } else if (error.response.status === 404) {
+      } else if (error.response?.status === 404) {
         toast.error("wrong path");
       } else {
-        toast.error(`${error.response.data.message}`);
+        toast.error(`${error.response?.data?.message || "Request failed"}`);
       }
     }
   };
 
   const handlePinnedMessage = async (messageId, receiverId, senderId) => {
-    console.log(messageId, receiverId, senderId);
     try {
-      const response = await axios.post(`${baseUrl}/user/pinMessage`, {
+      const response = await axiosInstance.post(`/user/pinMessage`, {
         messageId: messageId,
         senderId: senderId,
         receiverId: receiverId,
       });
-      console.log(response);
 
       if (response.data.status === "success") {
         fetchPinnedMessages(senderId, receiverId);
       } else {
-        toast.error(`${response.data.error.message}`);
+        toast.error(`${response.data.error?.message || "Failed to pin message"}`);
       }
     } catch (error) {
-      console.log(error);
-      toast.error(`${error.response.data.message}`);
+      toast.error(`${error.response?.data?.message || "Failed to pin message"}`);
     }
   };
 
   const handleUnPinnedMessage = async (messageId, receiverId, senderId) => {
     try {
-      const response = await axios.post(`${baseUrl}/user/unpinMessage`, {
+      const response = await axiosInstance.post(`/user/unpinMessage`, {
         messageId: messageId,
         senderId: senderId,
         receiverId: receiverId,
@@ -394,16 +387,16 @@ const emitStopTyping = () => {
         toast.success(`${response.data.message}`);
         setPinnedMessage(response?.data?.pinMessage);
       } else {
-        toast.error(`${response.data.error.message}`);
+        toast.error(`${response.data.error?.message || "Failed to unpin message"}`);
       }
     } catch (error) {
-      toast.error(`${error.response.data.message}`);
+      toast.error(`${error.response?.data?.message || "Failed to unpin message"}`);
     }
   };
 
   const fetchPinnedMessages = async (senderId, receiverId) => {
     try {
-      const response = await axios.get(`${baseUrl}/user/getPinMessage`, {
+      const response = await axiosInstance.get(`/user/getPinMessage`, {
         params: {
           userId: senderId,
           receiverId: receiverId,
@@ -411,13 +404,12 @@ const emitStopTyping = () => {
       });
 
       if (response.data) {
-        toast.success("Pinned message added successfully!");
         setPinnedMessage(response?.data?.pinMessage);
       } else {
-        toast.error("Failed to add pinned message!");
+        toast.error("Failed to load pinned message!");
       }
     } catch (error) {
-      toast.error("Failed to add pinned message!");
+      toast.error("Failed to load pinned message!");
     }
   };
 

@@ -1,29 +1,26 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { dashboard } from "../api/authApi";
+import { useAuth } from "./AuthProvider";
 
 const Dashboard = () => {
-  const token = localStorage.getItem("userToken");
-  const userId = localStorage.getItem("userId");
-  const username = localStorage.getItem("username");
-
+  const { user, username, isAuthenticated, isLoading, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkTokenAndFetchData = async () => {
-      if (!token) {
+      if (!isAuthenticated) {
         navigate("/signin");
         return;
       }
       try {
         const response = await dashboard();
-        localStorage.setItem("username", response.userDetail.username);
+        // Auth store will be updated automatically if needed
       } catch (err) {
         if (err.response && err.response.status === 401) {
           toast.error("Token has expired or is invalid");
-          localStorage.removeItem("userToken");
+          logout();
           navigate("/signin");
         } else {
           toast.error("An error occurred. Please try again later.");
@@ -31,12 +28,22 @@ const Dashboard = () => {
       }
     };
 
-    checkTokenAndFetchData();
-  }, [token, navigate]);
+    if (!isLoading) {
+      checkTokenAndFetchData();
+    }
+  }, [isAuthenticated, isLoading, navigate, logout]);
 
   const handleChat = () => {
     navigate(`/chat/${username}`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-blue-800">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-800">
