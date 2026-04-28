@@ -1,43 +1,50 @@
 import React, { useState, useEffect, useRef } from "react";
-import { io } from "socket.io-client";
-import axiosInstance from "../../utils/AxiosInstance";
-import {
-  FaReply,
-  FaCopy,
-  FaForward,
-  FaStar,
-  FaThumbtack,
-  FaTrashAlt,
-  FaCheckSquare,
-  FaShareAlt,
-  FaInfoCircle,
-} from "react-icons/fa";
+import { FaReply, FaCopy, FaForward, FaThumbtack, FaTrashAlt } from "react-icons/fa";
+import { Toaster, toast } from "sonner";
+import { useAuth } from "./AuthProvider";
+import useAuthStore from "../store/auth";
+import { useSocket } from "../hooks/useSocket";
+import { useMessages } from "../hooks/useMessages";
+import { SOCKET_EVENTS } from "../constants/socketEvents";
+import { getUsers } from "../api/authApi";
+
+// Components
 import UserList from "./UserList";
 import ChatInput from "./ChatInput";
-import Message from "./Message";
-import useMessageStore from "../store/chat";
-import { v4 as uuidv4 } from "uuid";
-import ProfilePic from "./ProfilePic";
-import { Toaster, toast } from "sonner";
-import { getMessage } from "../api/authApi";
-import { useAuth } from "./AuthProvider";
-
-const baseUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+import MessageList from "./MessageList";
+import ChatHeader from "./ChatHeader";
+import PinnedMessages from "./PinnedMessages";
+import TypingIndicator from "./TypingIndicator";
 
 const Chat = () => {
   const messageRefs = useRef({});
   const { userId, username, token } = useAuth();
+  const getLastChattedUserId = useAuthStore((state) => state.getLastChattedUserId);
+  const setLastChattedUserId = useAuthStore((state) => state.setLastChattedUserId);
 
-  const updateMessage = useMessageStore((state) => state.updateMessage);
-  const newData = useMessageStore((state) => state.data.messages);
+  // Socket management
+  const { socket, onlineUsers, isConnected, emitEvent, onEvent, offEvent } = useSocket(userId, token);
 
+  // Message management
+  const {
+    messages,
+    setMessages,
+    pinnedMessage,
+    setPinnedMessage,
+    fetchMessages,
+    sendMessage,
+    deleteMessage,
+    pinMessage,
+    unpinMessage,
+    fetchPinnedMessages,
+    forwardMessage: forwardMessageHook,
+  } = useMessages(userId, socket);
+
+  // UI State
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
-  const [socket, setSocket] = useState(null);
   const [receiverId, setReceiverId] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState(null);
   const [openToggle, setOpenToggle] = useState(false);
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -48,235 +55,171 @@ const Chat = () => {
   const [selectedToggle, setSelectedToggle] = useState(false);
   const [forwardTo, setForwardTo] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [pinnedMessage, setPinnedMessage] = useState(null);
   const [accountOwner, setAccountOwner] = useState(false);
   const [image, setImage] = useState(null);
 
-  const time = new Date().toLocaleTimeString();
-
-  const data = [
-    {
-      icon: <FaReply />,
-      text: "Reply",
-    },
-    {
-      icon: <FaCopy />,
-      text: "Copy",
-    },
-    {
-      icon: <FaTrashAlt />,
-      text: "Delete",
-    },
-    {
-      icon: <FaForward />,
-      text: "Forward",
-    },
-    // {
-    //   icon: <FaStar />,
-    //   text: "Star",
-    // },
-    // {
-    //   icon: <FaStar />,
-    //   text: "Unstar",
-    // },
-    {
-      icon: <FaThumbtack />,
-      text: "Pin",
-    },
-    {
-      icon: <FaThumbtack />,
-      text: "Unpin",
-    },
-    // {
-    //   icon: <FaCheckSquare />,
-    //   text: "Select",
-    // },
-    // {
-    //   icon: <FaShareAlt />,
-    //   text: "Share",
-    // },
-    // {
-    //   icon: <FaInfoCircle />,
-    //   text: "Info",
-    // },
+  // Message actions data
+  const messageActions = [
+    { icon: <FaReply />, text: "Reply" },
+    { icon: <FaCopy />, text: "Copy" },
+    { icon: <FaTrashAlt />, text: "Delete" },
+    { icon: <FaForward />, text: "Forward" },
+    { icon: <FaThumbtack />, text: "Pin" },
+    { icon: <FaThumbtack />, text: "Unpin" },
   ];
 
-  // step 1: fetch all users, this is done once on page load and i get the last chatted user id from local storage and fetch the messages for that user.
+  // Initialize socket listeners
   useEffect(() => {
-    const initialSocket = io(baseUrl);
-    setSocket(initialSocket);
-    initialSocket.emit("user-online", userId);
+    if (!socket) return;
 
-    // Call the getAllUsers function here
-    getAllUsers(initialSocket);
+    // Get all users
+    const getAllUsers = () => {
+      emitEvent(SOCKET_EVENTS.GET_USERS, { token });
+    };
 
-    const lastChattedUserId = localStorage.getItem("lastChattedUserId");
+    // Listen for users
+    const handleGetUsers = (data) => {
+      if (data) {
+        const owner = data.users.find((user) => user._id === userId);
+        setAccountOwner(owner);
+        const filteredUsers = data.users.filter((user) => user._id !== userId);
+        const updatedUsers = filteredUsers.map((user) => ({
+          ...user,
+          online: onlineUsers.includes(user._id),
+        }));
+        setUsers(updatedUsers);
+      }
+    };
+
+    // Listen for new messages
+    const handleNewMessage = (message) => {
+      setMessages((prevMessages) => {
+        // Prevent duplicates by checking if message already exists
+        const exists = prevMessages.some(msg => msg.messageId === message.messageId);
+        if (exists) {
+          console.log("Duplicate message prevented:", message.messageId);
+          return prevMessages;
+        }
+        return [...prevMessages, message];
+      });
+    };
+
+    // Listen for received messages
+    const handleReceiveMessage = (msg) => {
+      setMessages((prevMessages) => {
+        // Prevent duplicates by checking if message already exists
+        const exists = prevMessages.some(message => message.messageId === msg.messageId);
+        if (exists) {
+          console.log("Duplicate message prevented:", msg.messageId);
+          return prevMessages;
+        }
+        return [...prevMessages, msg];
+      });
+    };
+
+    // Set up listeners
+    onEvent(SOCKET_EVENTS.GET_USERS, handleGetUsers);
+    onEvent(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
+    onEvent(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
+
+    // Get users on connect
+    getAllUsers();
+
+    // Fallback: Try HTTP API if Socket.IO doesn't return users after 3 seconds
+    const fallbackTimer = setTimeout(async () => {
+      if (users.length === 0) {
+        console.log("Socket.IO didn't return users, trying HTTP API fallback");
+        try {
+          const response = await getUsers();
+          console.log("HTTP API users response:", response);
+          
+          let usersData = [];
+          if (response.success && response.data && response.data.users) {
+            usersData = response.data.users;
+          } else if (response.users) {
+            usersData = response.users;
+          } else if (Array.isArray(response)) {
+            usersData = response;
+          }
+          
+          if (usersData.length > 0) {
+            const owner = usersData.find((user) => (user._id || user.id) === userId);
+            setAccountOwner(owner);
+            
+            const filteredUsers = usersData.filter((user) => (user._id || user.id) !== userId);
+            const updatedUsers = filteredUsers.map((user) => ({
+              ...user,
+              online: onlineUsers.includes(user._id || user.id),
+            }));
+            setUsers(updatedUsers);
+          }
+        } catch (error) {
+          console.error("Failed to fetch users via HTTP API:", error);
+        }
+      }
+    }, 3000);
+
+    // Load last chatted user
+    const lastChattedUserId = getLastChattedUserId();
     if (lastChattedUserId) {
       setReceiverId(lastChattedUserId);
       fetchMessages(lastChattedUserId);
-      initialSocket.emit("getUsers", {
-        token: token,
-      });
-
-      initialSocket.on("getUsers", (data) => {
-        console.log("getUsers event received on frontend:", data);
-        if (data.status) {
-          const user = data.users.find((u) => u._id === lastChattedUserId);
-          setSelectedUser(user);
-        }
-      });
-      // Listen for new messages
-      initialSocket.on("newMessage", (message) => {
-        // console.log("New message received on frontend:", message);
-        setMessages((prevMessages) => [...prevMessages, message]);
-      });
+      
+      // Find and set selected user
+      emitEvent(SOCKET_EVENTS.GET_USERS, { token });
     }
 
-    // step 4 : listen to online users. endpoint to get online users
-    // initialSocket.on('update-online-users', (onlineUsersIds) => {
-    //     console.log(onlineUsersIds)
-    //     setOnlineUsers(onlineUsersIds);
-    // });
-
-    fetchOnlineUsers(initialSocket);
-
     return () => {
-      initialSocket.disconnect();
+      clearTimeout(fallbackTimer);
+      offEvent(SOCKET_EVENTS.GET_USERS, handleGetUsers);
+      offEvent(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
+      offEvent(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
     };
-  }, []);
+  }, [socket, onlineUsers, userId, token]);
 
-  const fetchOnlineUsers = async (initialSocket) => {
-    initialSocket.on("update-online-users", (onlineUsersIds) => {
-      // console.log(onlineUsersIds)
-      setOnlineUsers(onlineUsersIds);
-    });
-  };
-
-  // step 3: listen to messages or receive messages from one user to the owner of acct.
+  // Typing indicators
   useEffect(() => {
-    if (!socket) return;
-    
-    socket.on("recievemessage", (msg) => {
-      setMessages((prevMessages) => [...prevMessages, msg]);
-    });
+    if (!socket || !selectedUser) return;
 
-    // step 2: listen to users or get all users from the server
-    socket.on("getUsers", (data) => {
-      if (data.status) {
-        const owner = data.users.find((user) => user._id === userId);
-        setAccountOwner(owner);
-        // filter out the user who is chatting with i.e d owner of acct.
-        const filteredUsers = data.users.filter((user) => user._id !== userId);
-        // map the filtered users and add online status
-        const updatedUsers = filteredUsers.map((user) => ({
-          ...user,
-          // add online status
-          online: onlineUsers.includes(user._id),
-        }));
-        // console.log(updatedUsers)
-        setUsers(updatedUsers);
+    const handleTypingEvent = ({ senderId, receiverId }) => {
+      if (senderId === selectedUser._id && receiverId === userId) {
+        setIsTyping(true);
+        setTypingUser(senderId);
       }
-    });
+    };
+
+    const handleStopTypingEvent = ({ senderId, receiverId }) => {
+      if (senderId === selectedUser._id && receiverId === userId) {
+        setIsTyping(false);
+        setTypingUser(null);
+      }
+    };
+
+    onEvent(SOCKET_EVENTS.TYPING, handleTypingEvent);
+    onEvent(SOCKET_EVENTS.STOP_TYPING, handleStopTypingEvent);
 
     return () => {
-      socket.off("recievemessage");
-      socket.off("getUsers");
-      socket.off("typing");
-      socket.off("stopTyping");
+      offEvent(SOCKET_EVENTS.TYPING, handleTypingEvent);
+      offEvent(SOCKET_EVENTS.STOP_TYPING, handleStopTypingEvent);
     };
-  }, [socket, onlineUsers, userId]);
+  }, [socket, userId, selectedUser?._id]);
 
-  // This checks for user token and see if the user is connected through socket
-  const getAllUsers = async (socket) => {
-    if (!socket) return;
-    try {
-      socket.emit("getUsers", { token });
-    } catch (error) {
-      toast.error("Failed to fetch users");
-    }
-  };
-
-  const fetchMessages = async (senderId) => {
-    setMessages([]);
-    try {
-      const response = await getMessage(userId, senderId);
-      if (response.status) {
-        setMessages(response.messages);
-      }
-    } catch (error) {
-      toast.error("Failed to fetch messages");
-    }
+  // Handlers
+  const handleUserClick = (user) => {
+    setReceiverId(user._id);
+    setSelectedUser(user);
+    setLastChattedUserId(user._id);
+    fetchMessages(user._id);
+    setOpenForwardToggle(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const messageId = uuidv4();
-    const payload = {
-      senderId: userId,
-      receiverId,
-      replyTo: replyMessage,
-      messageId: messageId,
-      content: message,
-      users: [receiverId, userId],
-      timestamp: new Date(),
-    };
-    if (message && receiverId) {
-      try {
-        socket.emit("chat message", payload);
-        setMessages((prevMessages) => [...prevMessages, payload]);
-        setMessage("");
-        setReplyMessage("");
-        setShowEmojiPicker(false);
-      } catch (error) {
-        console.error("Error sending message:", error);
-      }
+    if (sendMessage(message, receiverId, replyMessage)) {
+      setMessage("");
+      setReplyMessage("");
+      setShowEmojiPicker(false);
     }
-  };
-  
-// 1️⃣ Listen for typing events from server
-useEffect(() => {
-  if (!socket) return;
-  const handleTypingEvent = ({ senderId, receiverId }) => {
-     if (senderId === selectedUser._id && receiverId === userId) {
-      setIsTyping(true);
-      setTypingUser(senderId);
-    }
-  };
-
-  const handleStopTypingEvent = ({ senderId, receiverId }) => {
-    if (senderId === selectedUser._id && receiverId === userId) {
-      setIsTyping(false);
-      setTypingUser(null);
-    }
-  };
-
-  socket.on("typing", handleTypingEvent);
-  socket.on("stopTyping", handleStopTypingEvent);
-
-  return () => {
-    socket.off("typing", handleTypingEvent);
-    socket.off("stopTyping", handleStopTypingEvent);
-  };
-}, [socket, userId, selectedUser?._id]);
-
-// 2️⃣ Emit typing events when YOU type
-const emitTyping = () => {
-  if (!socket) return;
-  socket.emit("typing", { senderId: userId, receiverId });
-};
-
-const emitStopTyping = () => {
-  if (!socket) return;
-  socket.emit("stopTyping", { senderId: userId, receiverId });
-};
-
-
-  const handleUserClick = (user) => {
-    setReceiverId(user._id);
-    setSelectedUser(user);
-    localStorage.setItem("lastChattedUserId", user._id);
-    fetchMessages(user._id);
-    setOpenForwardToggle(false);
   };
 
   const handleToggle = (messageId) => {
@@ -290,126 +233,86 @@ const emitStopTyping = () => {
 
   const handleEmojiClick = (emojiData) => {
     setMessage((prev) => prev + emojiData.emoji);
-    // setShowEmojiPicker(false);
   };
 
   const scrollToMessage = (messageId) => {
     const targetElement = messageRefs.current[messageId];
-    console.log("Target Element:", targetElement);
     if (targetElement) {
       targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
-  const handleAction = (action, message, messageId, receiverId, senderId) => {
-    if (action === "Copy") {
-      handleCopy(message);
-    } else if (action === "Reply") {
-      handleReply(message);
-    } else if (action === "Delete") {
-      handleDelete(messageId);
-      setOpenToggle(false);
-    } else if (action === "Forward") {
-      handleForwardMessage(messageId, users);
-    } else if (action === "Pin") {
-      handlePinnedMessage(messageId, receiverId, senderId);
-      setOpenToggle(false);
-    } else if (action === "Unpin") {
-      handleUnPinnedMessage(messageId, receiverId, senderId);
-      setOpenToggle(false);
+  const handleAction = (action, messageContent, messageId, receiverId, senderId) => {
+    switch (action) {
+      case "Copy":
+        handleCopy(messageContent);
+        break;
+      case "Reply":
+        handleReply(messageContent);
+        break;
+      case "Delete":
+        handleDelete(messageId);
+        break;
+      case "Forward":
+        handleForwardMessage(messageId, users);
+        break;
+      case "Pin":
+        handlePinnedMessage(messageId, receiverId, senderId);
+        break;
+      case "Unpin":
+        handleUnPinnedMessage(messageId, receiverId, senderId);
+        break;
     }
   };
 
-  const handleCopy = async (message) => {
+  const handleCopy = async (messageContent) => {
     try {
-      await navigator.clipboard.writeText(message);
-      toast.success("Message copied to clipboard!");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(messageContent);
+        toast.success("Message copied to clipboard!");
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = messageContent;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          toast.success("Message copied to clipboard!");
+        } catch (err) {
+          toast.error("Failed to copy message");
+        }
+        document.body.removeChild(textArea);
+      }
       setOpenToggle(false);
     } catch (err) {
       console.error("Failed to copy text: ", err);
+      toast.error("Failed to copy message");
     }
   };
 
-  const handleReply = async (replyMessage) => {
-    setReplyMessage(replyMessage);
+  const handleReply = (replyContent) => {
+    setReplyMessage(replyContent);
     setOpenToggle(false);
   };
 
   const handleDelete = async (messageId) => {
-    if (!messageId) {
-      toast.error("invalid message id");
-      return;
-    }
-    try {
-      const response = await axiosInstance.delete(`/user/deleteMessage/${messageId}`);
-      toast.success(`${response.data.message}`);
-      const deleteMessage = messages.filter(
-        (item) => item.messageId !== messageId
-      );
-      setMessages(deleteMessage);
-    } catch (error) {
-      if (error.response?.data?.status) {
-        toast.error(`${error.response.data.message}`);
-      } else if (error.response?.status === 404) {
-        toast.error("wrong path");
-      } else {
-        toast.error(`${error.response?.data?.message || "Request failed"}`);
-      }
+    if (await deleteMessage(messageId)) {
+      setOpenToggle(false);
     }
   };
 
   const handlePinnedMessage = async (messageId, receiverId, senderId) => {
-    try {
-      const response = await axiosInstance.post(`/user/pinMessage`, {
-        messageId: messageId,
-        senderId: senderId,
-        receiverId: receiverId,
-      });
-
-      if (response.data.status === "success") {
-        fetchPinnedMessages(senderId, receiverId);
-      } else {
-        toast.error(`${response.data.error?.message || "Failed to pin message"}`);
-      }
-    } catch (error) {
-      toast.error(`${error.response?.data?.message || "Failed to pin message"}`);
+    if (await pinMessage(messageId, receiverId, senderId)) {
+      setOpenToggle(false);
     }
   };
 
   const handleUnPinnedMessage = async (messageId, receiverId, senderId) => {
-    try {
-      const response = await axiosInstance.post(`/user/unpinMessage`, {
-        messageId: messageId,
-        senderId: senderId,
-        receiverId: receiverId,
-      });
-      if (response.data.status === "success") {
-        toast.success(`${response.data.message}`);
-        setPinnedMessage(response?.data?.pinMessage);
-      } else {
-        toast.error(`${response.data.error?.message || "Failed to unpin message"}`);
-      }
-    } catch (error) {
-      toast.error(`${error.response?.data?.message || "Failed to unpin message"}`);
-    }
-  };
-
-  const fetchPinnedMessages = async (senderId, receiverId) => {
-    try {
-      const response = await axiosInstance.get(`/user/getPinMessage`, {
-        params: {
-          userId: senderId,
-          receiverId: receiverId,
-        },
-      });
-
-      if (response.data) {
-        setPinnedMessage(response?.data?.pinMessage);
-      } else {
-        toast.error("Failed to load pinned message!");
-      }
-    } catch (error) {
-      toast.error("Failed to load pinned message!");
+    if (await unpinMessage(messageId, receiverId, senderId)) {
+      setOpenToggle(false);
     }
   };
 
@@ -420,31 +323,38 @@ const emitStopTyping = () => {
     setOpenToggle(false);
   };
 
-  const handleForwardClick = (messageId, users) => {
-    console.log(_id, users);
-    // setForwardTo(user.username);
+  const handleForwardClick = (user) => {
+    setForwardTo(user.username);
+    setFilteredUsers([user]);
   };
 
   const handleForwardTo = (e) => {
     const inputValue = e.target.value;
     setForwardTo(inputValue);
-    const filteredUsers = users.filter((user) =>
+    const filtered = users.filter((user) =>
       user.username.toLowerCase().includes(inputValue.toLowerCase())
     );
-    setFilteredUsers(filteredUsers);
+    setFilteredUsers(filtered);
   };
 
-  const forwardMessage = async (username, receiverId) => {
-    // try {
-    //     const response = await axios.post(`${baseUrl}/messages/forward`, {
-    //         content,
-    //         senderId: "userId",
-    //         recipients: receiverId,
-    //     });
-    //     console.log("Message forwarded successfully:", response.data);
-    // } catch (error) {
-    //     console.error("Error forwarding message:", error);
-    // }
+  const forwardMessage = (username, receiverId) => {
+    if (forwardMessageHook(selectedToggle, receiverId, username)) {
+      setOpenForwardToggle(false);
+      setForwardTo("");
+      setFilteredUsers([]);
+    }
+  };
+
+  const emitTyping = () => {
+    if (socket && isConnected) {
+      emitEvent(SOCKET_EVENTS.TYPING, { senderId: userId, receiverId });
+    }
+  };
+
+  const emitStopTyping = () => {
+    if (socket && isConnected) {
+      emitEvent(SOCKET_EVENTS.STOP_TYPING, { senderId: userId, receiverId });
+    }
   };
 
   return (
@@ -458,126 +368,55 @@ const emitStopTyping = () => {
           image={image}
         />
 
-        <div
-          className="flex-1 flex flex-col bg-opacity-80"
-          id="scroll-container"
-        >
+        <div className="flex-1 flex flex-col bg-opacity-80" id="scroll-container">
           <div className="flex-1">
             {selectedUser ? (
               <>
-                <div className="flex items-center justify-between fixed w-full z-10 px-5 py-5 bg-white">
-                  <div className="flex items-center">
-                    <div className="ms-16">
-                      <p className="">Chatting with {selectedUser.username}</p>
-                      <p
-                        className={`ml-15 ${
-                          selectedUser.online
-                            ? "text-green-500"
-                            : "text-red-300"
-                        }`}
-                      >
-                        ({selectedUser.online ? "Online" : "Offline"})
-                      </p>
-                    </div>
-                    <div className="z-50 absolute">
-                      <ProfilePic
-                        selectedUser={selectedUser}
-                        image={image}
-                        setImage={setImage}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <ChatHeader 
+                  selectedUser={selectedUser}
+                  image={image}
+                  setImage={setImage}
+                />
 
-                {pinnedMessage &&
-                  pinnedMessage.length > 0 &&
-                  selectedUser.username && (
-                    <div className="absolute w-full top-[13%] z-20 bg-gray-100 border-t border-gray-300 flex flex-col gap-2 px-5 mb-4">
-                      <button
-                        onClick={() => setPinnedMessage([])}
-                        className="text-blue-900 text-sm font-semibold"
-                      >
-                        Clear Pinned Messages
-                      </button>
-                      {pinnedMessage.map((pinnedMessage) => (
-                        <div
-                          key={pinnedMessage._id}
-                          className="flex gap-5 p-1 items-center"
-                        >
-                          {pinnedMessage.senderId === userId ? (
-                            <div className="flex gap-5 text-xl font-semibold text-gray-900">
-                              <span className="text-sm text-dark">
-                                {pinnedMessage.content}
-                              </span>
+                <PinnedMessages
+                  pinnedMessage={pinnedMessage}
+                  setPinnedMessage={setPinnedMessage}
+                  userId={userId}
+                />
 
-                              <span className="text-sm">
-                                {pinnedMessage.timestamp
-                                  ? new Date(
-                                      pinnedMessage.timestamp
-                                    ).toLocaleTimeString()
-                                  : null}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex gap-5 text-xl font-semibold text-gray-900">
-                              <span className="text-sm text-dark">
-                                {pinnedMessage.content}
-                              </span>
+                <TypingIndicator
+                  isTyping={isTyping}
+                  typingUser={typingUser}
+                  users={users}
+                />
 
-                              <span className="text-sm">
-                                {pinnedMessage.timestamp
-                                  ? new Date(
-                                      pinnedMessage.timestamp
-                                    ).toLocaleTimeString()
-                                  : null}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                {isTyping && typingUser && (
-                  <p className="text-xl font-bold right-10 text-blue-900 absolute top-10 z-50">
-                     {users.find(u => u._id === typingUser)?.username} is typing...
-                  </p>
-                )}
-
-                <div className="space-y-2 py-[12%]" id="scroll">
-                  {messages.map((msg, index) => (
-                    <Message
-                      msg={msg}
-                      userId={userId}
-                      selectedUser={selectedUser}
-                      messageRefs={messageRefs}
-                      openToggle={openToggle}
-                      setOpenToggle={setOpenToggle}
-                      selectedMsg={selectedMsg}
-                      handleToggle={handleToggle}
-                      data={data}
-                      handleAction={handleAction}
-                      openForwardToggle={openForwardToggle}
-                      selectedToggle={selectedToggle}
-                      forwardTo={forwardTo}
-                      handleForwardTo={handleForwardTo}
-                      handleForwardClick={handleForwardClick}
-                      forwardMessage={forwardMessage}
-                      setOpenForwardToggle={setOpenForwardToggle}
-                      users={users}
-                      scrollToMessage={scrollToMessage}
-                      filteredUsers={filteredUsers}
-                      setFilteredUsers={setFilteredUsers}
-                      setForwardTo={setForwardTo}
-                      setMessages={setMessages}
-                      messages={messages}
-                      pinnedMessage={pinnedMessage}
-                    />
-                  ))}
-                </div>
+                <MessageList
+                  messages={messages}
+                  userId={userId}
+                  selectedUser={selectedUser}
+                  messageRefs={messageRefs}
+                  openToggle={openToggle}
+                  setOpenToggle={setOpenToggle}
+                  selectedMsg={selectedMsg}
+                  handleToggle={handleToggle}
+                  data={messageActions}
+                  handleAction={handleAction}
+                  openForwardToggle={openForwardToggle}
+                  selectedToggle={selectedToggle}
+                  forwardTo={forwardTo}
+                  handleForwardTo={handleForwardTo}
+                  handleForwardClick={handleForwardClick}
+                  forwardMessage={forwardMessage}
+                  setOpenForwardToggle={setOpenForwardToggle}
+                  users={users}
+                  scrollToMessage={scrollToMessage}
+                  filteredUsers={filteredUsers}
+                  setFilteredUsers={setFilteredUsers}
+                  setForwardTo={setForwardTo}
+                />
               </>
             ) : (
-              <p className="text-gray-700 bg-gray-100 border-t border-gray-300 py-6 p-3 text-xl">
+              <p className="text-surface-400 bg-surface-800/50 backdrop-blur-sm border border-surface-700 rounded-lg py-12 p-6 text-center text-lg">
                 Select a user to start chatting.
               </p>
             )}

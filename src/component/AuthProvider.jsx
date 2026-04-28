@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
     token,
     isAuthenticated,
     isLoading,
+    hydrated,
     setAuth,
     logout,
     setLoading,
@@ -56,6 +57,7 @@ export const AuthProvider = ({ children }) => {
     token,
     isAuthenticated,
     isLoading,
+    hydrated,
 
     // Actions
     setAuth,

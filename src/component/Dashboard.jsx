@@ -16,7 +16,6 @@ const Dashboard = () => {
       }
       try {
         const response = await dashboard();
-        // Auth store will be updated automatically if needed
       } catch (err) {
         if (err.response && err.response.status === 401) {
           toast.error("Token has expired or is invalid");
@@ -39,20 +38,23 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-800">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-surface-900">
+        <div className="text-surface-50 flex flex-col items-center gap-3">
+          <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-800">
+    <div className="min-h-screen flex items-center justify-center bg-surface-900">
       <Toaster position="top-center" />
       <div
-        className="bg-white p-3 hover:bg-blue-200 hover:text-blue-800 cursor-pointer text-blue-800 rounded-lg shadow-md"
+        className="bg-surface-800 border border-surface-700 p-6 hover:bg-primary-600 hover:border-primary-500 cursor-pointer text-surface-50 rounded-2xl shadow-card transition-all"
         onClick={handleChat}
       >
-        <p>Chat with User</p>
+        <p className="text-lg font-semibold">Start Chatting</p>
       </div>
     </div>
   );

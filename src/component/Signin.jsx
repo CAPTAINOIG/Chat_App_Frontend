@@ -46,12 +46,22 @@ const Signin = () => {
       setError(null);
       try {
         const res = await signIn(values);
-        // Use auth store instead of localStorage
-        setAuth(res.user, res.token);
-        toast.success("User signed in successfully!");
-        setLoading(false);
-        navigate("/dashboard");
+        if (res && res.success && res.data) {
+          const { user, token } = res.data;
+          if (user && token) {
+            setAuth(user, token);
+            toast.success("Signed in successfully!");
+            setLoading(false);
+            navigate("/dashboard");
+          } else {
+            throw new Error("User or token missing in response data");
+          }
+        } else {
+          throw new Error("Invalid response structure from server");
+        }
       } catch (err) {
+        
+        console.log(err);
         setLoading(false);
         if (err.response && err.response.data) {
           setError(err.response.data.message);
@@ -64,52 +74,57 @@ const Signin = () => {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-800 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-surface-900 p-6">
       <Toaster position="top-center" />
-      <div className="bg-white p-8 text-blue-800 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Sign In</h2>
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+      <div className="bg-surface-800 p-8 text-surface-50 rounded-2xl shadow-card border border-surface-700 w-full max-w-md">
+        <h2 className="text-3xl font-bold mb-6 text-center">Welcome Back</h2>
+        {error && (
+          <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
+            {error}
+          </div>
+        )}
         <form onSubmit={formik.handleSubmit}>
-          <div className="h-[80px] my-3">
-            <label htmlFor="email" className="font-semibold">
-              Email
+          <div className="mb-5">
+            <label htmlFor="email" className="block font-semibold mb-2 text-sm text-surface-300">
+              Email Address
             </label>
             <input
               type="email"
-              placeholder="jane@gmail.com"
-              className="px-4 py-2 w-full border-2 mt-1 border-blue-800 rounded-lg focus:outline-blue-800"
+              placeholder="jane@example.com"
+              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="email"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.email}
             />
             {formik.touched.email && formik.errors.email && (
-              <span className="text-red-500 text-sm">
+              <span className="text-red-400 text-xs mt-1 block">
                 {formik.errors.email}
               </span>
             )}
           </div>
-          <div className="h-[80px] relative my-3">
-            <label htmlFor="password" className="font-semibold">
+          <div className="mb-5 relative">
+            <label htmlFor="password" className="block font-semibold mb-2 text-sm text-surface-300">
               Password
             </label>
             <input
               type={passwordVisible ? "text" : "password"}
               autoComplete="off"
-              className="border-2 mt-1 border-blue-800 py-2 px-4 w-full rounded-lg focus:outline-blue-800"
+              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="password"
+              placeholder="••••••••"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.password}
             />
             {formik.touched.password && formik.errors.password && (
-              <span className="text-red-500 text-sm">
+              <span className="text-red-400 text-xs mt-1 block">
                 {formik.errors.password}
               </span>
             )}
             <span
               onClick={togglePasswordVisibility}
-              className="absolute top-[42px] right-5 cursor-pointer text-blue-800"
+              className="absolute top-[42px] right-4 cursor-pointer text-surface-400 hover:text-surface-200"
             >
               {!passwordVisible ? (
                 <IoEyeSharp size={20} />
@@ -118,27 +133,27 @@ const Signin = () => {
               )}
             </span>
           </div>
-          <div className="text-right text-sm text-blue-600 hover:underline mb-4 cursor-pointer">
+          <div className="text-right text-sm text-primary-400 hover:text-primary-300 mb-6 cursor-pointer">
             <a href="/forgot-password">Forgot Password?</a>
           </div>
           <button
             type="submit"
-            className="bg-blue-800 hover:bg-blue-500 text-white font-bold py-2 px-4 w-full rounded focus:outline-none focus:shadow-outline"
+            className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-3 px-4 w-full rounded-lg transition-colors shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading}
           >
             {loading ? <ClipLoader size={20} color="#ffffff" /> : "Sign In"}
           </button>
         </form>
-        <div className="flex items-center justify-center my-4">
-          <div className="w-full border-t border-gray-300"></div>
-          <span className="px-3 text-gray-500">OR</span>
-          <div className="w-full border-t border-gray-300"></div>
+        <div className="flex items-center justify-center my-6">
+          <div className="w-full border-t border-surface-700"></div>
+          <span className="px-3 text-surface-500 text-sm">OR</span>
+          <div className="w-full border-t border-surface-700"></div>
         </div>
         <GoogleAuth />
-        <p className="text-center text-sm mt-4">
+        <p className="text-center text-sm mt-6 text-surface-400">
           New here?{" "}
-          <a href="/signup" className="text-blue-600 hover:underline">
-            Sign Up
+          <a href="/signup" className="text-primary-400 hover:text-primary-300 font-semibold">
+            Create Account
           </a>
         </p>
       </div>

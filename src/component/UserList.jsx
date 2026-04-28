@@ -20,9 +20,18 @@ import { TbTableShortcut } from "react-icons/tb";
 import axiosInstance from "../../utils/AxiosInstance";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthProvider";
+import { 
+  uploadProfilePicture, 
+  fetchProfilePicture, 
+  updateProfile, 
+  getProfileData,
+  handleApiError,
+  validateImageFile,
+  fileToBase64
+} from "../api/authApi";
 
 const UserList = ({ users, handleUserClick, accountOwner }) => {
-  const { userId } = useAuth();
+  const { userId, logout } = useAuth();
   const [image, setImage] = useState(null);
   const [openToggle, setOpenToggle] = useState(false);
   const [editToggle, setEditToggle] = useState(false);
@@ -104,42 +113,51 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setLoading(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target.result;
-      console.log(base64);
-      try {
-        const response = await axiosInstance.post(`/user/profilePicture`, {
-          userId: userId,
-          base64: base64,
-        });
-        console.log(response);
-        fetchProfilePic();
-      } catch (error) {
-        console.log(error);
-        toast.error("Failed to upload image.");
-        setLoading(false);
+
+    try {
+      // Validate file
+      validateImageFile(file);
+      
+      setLoading(true);
+      setEditToggle(false);
+
+      // Convert to base64
+      const base64 = await fileToBase64(file);
+      
+      // Upload to server
+      const response = await uploadProfilePicture(userId, base64);
+      
+      if (response && response.success !== false) {
+        toast.success("Profile picture updated successfully!");
+        await fetchProfilePic();
+      } else {
+        throw new Error("Unexpected response from server");
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Profile picture upload error:", error);
+      toast.error(handleApiError(error, "Failed to upload image"));
+      setLoading(false);
+    }
   };
 
   const fetchProfilePic = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get(`/user/fetchPicture`, {
-        params: { userId: userId },
-      });
-      if (response?.data?.url) {
-        setImage(response?.data?.url);
-        // setOpenToggle(false);
+      const response = await fetchProfilePicture(userId);
+      if (response?.url) {
+        setImage(response.url);
         setLoading(false);
         setEditToggle(false);
+      } else {
+        setImage(null);
+        setLoading(false);
       }
     } catch (error) {
-      console.log(error);
-      // toast.error("Failed to fetch profile picture.");
+      console.error("Failed to fetch profile picture:", error);
+      if (error.response?.status !== 404) {
+        toast.error(handleApiError(error, "Failed to load profile picture"));
+      }
+      setImage(null);
       setLoading(false);
     }
   };
@@ -166,75 +184,78 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
   const handleUpdate = async () => {
     const data = { profileName, aboutMe };
     try {
-      const response = await axiosInstance.put(`/user/updateProfile/${userId}`, data);
-      getProfileUpdate(userId);
+      await updateProfile(userId, data);
+      await getProfileUpdate();
       setIsEditing(false);
+      toast.success("Profile updated successfully!");
     } catch (error) {
-      toast.error("Failed to update profile.");
+      toast.error(handleApiError(error, "Failed to update profile"));
     }
   };
 
   const getProfileUpdate = async () => {
     try {
-      const response = await axiosInstance.get(`/user/getUpdateProfile/`, {
-        params: { userId: userId },
-      });
-      setProfileName(response?.data?.userDetail?.profileName);
-      setAboutMe(response?.data?.userDetail?.aboutMe);
-    } catch (error) {}
+      const response = await getProfileData(userId);
+      setProfileName(response?.userDetail?.profileName || "");
+      setAboutMe(response?.userDetail?.aboutMe || "");
+    } catch (error) {
+      console.error("Failed to get profile data:", error);
+    }
   };
 
   return (
-    <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto">
+    <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-surface-700 bg-surface-800/50 backdrop-blur-sm overflow-y-auto">
       <Toaster position="top-center" />
-      <h2 className="text-xl font-bold mb-4 text-gray-900 bg-gray-100 border-t rounded-sm p-1 border-gray-300">
-        Users
+      <h2 className="text-xl font-bold mb-4 text-surface-50 bg-surface-900 border border-surface-700 rounded-lg p-3">
+        Conversations
       </h2>
       <div className="space-y-2">
         {users.length > 0 ? (
           users.map((item, i) => (
             <div
               key={i}
-              className="p-2 cursor-pointer hover:bg-gray-300 hover:text-black text-gray-700 rounded bg-gray-100"
+              className="p-3 cursor-pointer hover:bg-primary-600 hover:text-white text-surface-200 rounded-lg bg-surface-900 border border-surface-700 transition-all"
               onClick={() => handleUserClick(item)}
             >
-              <div className="flex items-center gap-5">
-                <div>
+              <div className="flex items-center gap-3">
+                <div className="relative">
                   {item?.profilePicture ? (
                     <img
-                      className="w-12 h-12 rounded-full border-4 border-white object-cover"
+                      className="w-12 h-12 rounded-full border-2 border-primary-500 object-cover"
                       src={item.profilePicture}
                       alt="Profile"
                     />
                   ) : (
                     <img
-                      className="w-12 h-12 rounded-full border-4 border-white object-cover"
+                      className="w-12 h-12 rounded-full border-2 border-surface-600 object-cover"
                       src={user}
                       alt="Profile"
                     />
                   )}
+                  {item.online && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-accent-400 border-2 border-surface-900 rounded-full"></span>
+                  )}
                 </div>
-                <span>{item?.username || "Unknown User"}</span>
+                <span className="font-medium">{item?.username || "Unknown User"}</span>
               </div>
             </div>
           ))
         ) : (
-          <p className="text-center text-gray-500">No users available</p>
+          <p className="text-center text-surface-500 py-8">No users available</p>
         )}
       </div>
 
       <div
-        // ref={dropdownRef}
         onClick={handleAction}
-        className="fixed bottom-0 left-0 items-center  rounded-full border-white border m-2 cursor-pointer"
+        className="fixed bottom-0 left-0 items-center rounded-full border-2 border-primary-500 m-2 cursor-pointer hover:border-primary-400 transition-colors"
       >
         <Tooltip title="profile">
           {loading ? (
-            <div className="w-14 h-14 rounded-full border-4 border-white bg-gray-300 animate-pulse"></div>
+            <div className="w-14 h-14 rounded-full border-4 border-primary-500 bg-surface-700 animate-pulse"></div>
           ) : image ? (
             <div>
               <img
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-14 h-14 rounded-full object-cover"
                 src={image}
                 alt="Profile"
               />
@@ -256,147 +277,165 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.5 }}
-          className="absolute top-24 left-2 w-1/2 z-50 bg-white shadow-lg rounded-lg border border-gray-200"
+          transition={{ duration: 0.3 }}
+          className="fixed top-20 left-4 right-4 md:left-4 md:right-auto md:w-[600px] z-50 bg-surface-800 shadow-2xl rounded-2xl border border-surface-700 max-h-[80vh] overflow-y-auto"
         >
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-400 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-0">
+            {/* Left sidebar menu */}
+            <div className="bg-surface-900 rounded-l-2xl p-3 border-r border-surface-700">
               {data?.map((item, index) => (
                 <div
                   key={index}
-                  className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-gray-300 rounded-full"
+                  className="flex items-center space-x-3 p-3 cursor-pointer hover:bg-primary-600 rounded-lg transition-colors text-surface-200 mb-1"
                   onClick={() => handleAction(item?.text, item?.icon)}
                 >
-                  {item?.icon}
-                  <span>{item?.text}</span>
+                  <span className="text-lg">{item?.icon}</span>
+                  <span className="text-sm font-medium">{item?.text}</span>
                 </div>
               ))}
             </div>
-            <div className="p-3 relative group">
-              <div>
-                {image ? (
-                  <div>
+            
+            {/* Right profile section */}
+            <div className="p-6 relative group">
+              {/* Profile Picture */}
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative">
+                  {image ? (
                     <img
-                      className="w-28 mx-auto h-28 rounded-full object-cover"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-primary-500 shadow-lg"
                       src={image}
                       alt="Profile"
                     />
-                  </div>
-                ) : (
-                  <div>
+                  ) : (
                     <img
-                      className="w-28 h-28 mx-auto rounded-full object-cover"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-surface-600 shadow-lg"
                       src={user}
                       alt="Profile"
                     />
+                  )}
+                  <div className="absolute bottom-0 right-0 bg-primary-600 rounded-full p-2 cursor-pointer hover:bg-primary-500 transition-colors shadow-lg">
+                    <CiEdit
+                      onClick={handleEdit}
+                      className="text-white"
+                      size={20}
+                    />
                   </div>
-                )}
-              </div>
-              <div>
-                <div>
-                  <div className="font-semibold flex gap-5 items-center text-xl mt-5 text-center">
-                    <AnimatePresence mode="wait">
-                      {isEditing && editingField === "profileName" ? (
-                        <motion.input
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          required
-                          className="border border-default-200 bg-transparent text-lg leading-tight w-[200px] py-2 px-3 rounded-2xl"
-                          value={profileName}
-                          onChange={(e) => setProfileName(e.target.value)}
-                          onBlur={handleUpdate}
-                          onKeyDown={(e) => e.key === "Enter" && handleUpdate()}
-                          autoFocus
-                        />
-                      ) : (
-                        <motion.p
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          onClick={() => {
-                            setIsEditing(true);
-                            setEditingField("profileName");
-                          }}
-                          className="text-lg font-medium leading-tight border border-transparent hover:border-default-200 py-2 px-3 rounded-2xl cursor-pointer"
-                        >
-                          {profileName || "Enter your name"}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-                    <div>
-                      <AiOutlineEdit
-                        className="text-gray-500 cursor-pointer hover:text-gray-700"
-                        onClick={() => setIsEditing(true)}
-                      />
-                    </div>
-                  </div>
-
-                  <p className="text-gray-500 ms-3">About</p>
-                  <AnimatePresence mode="wait">
-                    {isEditing && editingField === "aboutMe" ? (
-                      <motion.textarea
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="w-full h-24 rounded-lg p-2 border border-default-200 bg-transparent"
-                        placeholder="About Me"
-                        value={aboutMe}
-                        onChange={(e) => setAboutMe(e.target.value)}
-                        onBlur={handleUpdate}
-                        autoFocus
-                      />
-                    ) : (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => {
-                          setIsEditing(true);
-                          setEditingField("aboutMe");
-                        }}
-                        className="w-full text-lg font-medium leading-tight border border-transparent hover:border-default-200 py-2 px-3 rounded-2xl cursor-pointer"
-                      >
-                        {aboutMe || "Write something about yourself"}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                  {/* <button onClick={handleUpdate}>Update Profile</button> */}
                 </div>
-                {accountOwner.number && (
-                  <div>
-                    <p className="text-gray-500 ms-3">Phone number</p>
-                    <p className="ms-3">{accountOwner?.number}</p>
-                  </div>
-                )}
-                <div className="border border-b mt-3"></div>
-                <button
-                  onClick={handleLogOut}
-                  className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none mt-3 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                >
-                  Log out
-                </button>
               </div>
-              <div className="group-hover:flex top-[12%] left-[42%] hidden cursor-pointer absolute items-center">
-                <CiEdit
-                  onClick={handleEdit}
-                  className="text-white bg-black opacity-50 p-2 ms-2 rounded-full"
-                  size={40}
-                />
-              </div>
-              {editToggle && (
-                <section className="bg-gray-200 rounded-lg absolute top-[-23%] left-[20%] w-40 h-24 items-center">
-                  <div>
-                    <button
-                      onClick={() =>
-                        document.getElementById("avatarInput").click()
-                      }
-                      className="text-green-700 absolute hover:bg-gray-600 hover:text-white w-full rounded py-1 top-[3%] left-[0%] px-2 cursor-pointer"
+
+              {/* Profile Name */}
+              <div className="mb-4">
+                <label className="text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
+                  Display Name
+                </label>
+                <AnimatePresence mode="wait">
+                  {isEditing && editingField === "profileName" ? (
+                    <motion.input
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      required
+                      className="w-full border border-surface-600 bg-surface-900 text-surface-50 text-base py-2 px-3 rounded-lg focus:border-primary-500 transition-colors"
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      onBlur={handleUpdate}
+                      onKeyDown={(e) => e.key === "Enter" && handleUpdate()}
+                      autoFocus
+                    />
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => {
+                        setIsEditing(true);
+                        setEditingField("profileName");
+                      }}
+                      className="flex items-center justify-between border border-transparent hover:border-surface-600 py-2 px-3 rounded-lg cursor-pointer group"
                     >
-                      <FontAwesomeIcon icon={faEdit} className="mr-2" /> Change
-                      Image
-                    </button>
-                  </div>
+                      <p className="text-surface-50 font-medium">
+                        {profileName || "Enter your name"}
+                      </p>
+                      <AiOutlineEdit className="text-surface-500 group-hover:text-primary-400 transition-colors" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* About Section */}
+              <div className="mb-4">
+                <label className="text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
+                  About
+                </label>
+                <AnimatePresence mode="wait">
+                  {isEditing && editingField === "aboutMe" ? (
+                    <motion.textarea
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="w-full h-24 rounded-lg p-3 border border-surface-600 bg-surface-900 text-surface-50 focus:border-primary-500 transition-colors resize-none"
+                      placeholder="Write something about yourself..."
+                      value={aboutMe}
+                      onChange={(e) => setAboutMe(e.target.value)}
+                      onBlur={handleUpdate}
+                      autoFocus
+                    />
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => {
+                        setIsEditing(true);
+                        setEditingField("aboutMe");
+                      }}
+                      className="border border-transparent hover:border-surface-600 py-2 px-3 rounded-lg cursor-pointer min-h-[60px]"
+                    >
+                      <p className="text-surface-300 text-sm">
+                        {aboutMe || "Write something about yourself..."}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Phone Number */}
+              {accountOwner?.number && (
+                <div className="mb-6">
+                  <label className="text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
+                    Phone Number
+                  </label>
+                  <p className="text-surface-50 font-medium py-2 px-3">
+                    {accountOwner.number}
+                  </p>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="border-t border-surface-700 my-4"></div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogOut}
+                className="w-full text-white bg-red-600 hover:bg-red-500 focus:ring-4 focus:outline-none focus:ring-red-800 font-semibold rounded-lg text-sm px-5 py-3 text-center transition-colors shadow-md"
+              >
+                Log Out
+              </button>
+              {/* Edit Profile Picture Menu */}
+              {editToggle && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-surface-800 border border-surface-600 rounded-xl shadow-2xl w-56 overflow-hidden z-10"
+                >
+                  <button
+                    onClick={() => document.getElementById("avatarInput").click()}
+                    className="flex items-center gap-3 text-accent-400 hover:bg-surface-700 hover:text-white w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium"
+                  >
+                    <FontAwesomeIcon icon={faEdit} className="text-base" />
+                    <span>Change Image</span>
+                  </button>
                   <input
                     type="file"
                     id="avatarInput"
@@ -404,43 +443,40 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                     accept="image/*"
                     onChange={handleFileUpload}
                   />
-                  <div>
-                    <button
-                      onClick={handleRemoveImage}
-                      className="text-orange-600 absolute top-[35%] hover:text-white hover:bg-gray-600 w-full rounded py-1 left-[0%] px-2 cursor-pointer"
-                    >
-                      <FontAwesomeIcon icon={faTrash} className="mr-2" /> Remove
-                      Image
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleRemoveImage}
+                    className="flex items-center gap-3 text-orange-400 hover:text-white hover:bg-surface-700 w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium border-t border-surface-700"
+                  >
+                    <FontAwesomeIcon icon={faTrash} className="text-base" />
+                    <span>Remove Image</span>
+                  </button>
+                  <button
+                    onClick={handleViewImage}
+                    className="flex items-center gap-3 text-primary-400 hover:text-white hover:bg-surface-700 w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium border-t border-surface-700"
+                  >
+                    <FontAwesomeIcon icon={faEye} className="text-base" />
+                    <span>View Image</span>
+                  </button>
+                </motion.div>
+              )}
 
-                  <div>
+              {/* Full Image Viewer */}
+              {viewImage && (
+                <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100]">
+                  <div className="relative max-w-4xl max-h-[90vh] p-4">
+                    <img
+                      className="w-full h-full object-contain rounded-xl"
+                      src={viewImage}
+                      alt="Full-size Profile"
+                    />
                     <button
-                      onClick={handleViewImage}
-                      className="text-blue-600 absolute top-[65%] hover:text-white hover:bg-gray-600 w-full rounded py-1 left-[0%] px-2 cursor-pointer"
+                      onClick={() => setViewImage(null)}
+                      className="absolute -top-2 -right-2 h-12 w-12 hover:text-red-400 text-white bg-surface-800 hover:bg-surface-700 rounded-full transition-colors shadow-xl flex items-center justify-center text-xl font-bold"
                     >
-                      <FontAwesomeIcon icon={faEye} className="mr-2" /> View
-                      Image
+                      ✕
                     </button>
                   </div>
-                  {viewImage && (
-                    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-                      <div className="bg-white p-4 rounded-lg">
-                        <img
-                          className="w-full h-full object-cover rounded-lg"
-                          src={viewImage}
-                          alt="Full-size Profile"
-                        />
-                        <button
-                          onClick={() => setViewImage(null)}
-                          className="absolute top-2 right-10 h-10 w-10 hover:text-red-600 text-white bg-gray-300 p-2 rounded-full"
-                        >
-                          X
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </section>
+                </div>
               )}
             </div>
           </div>

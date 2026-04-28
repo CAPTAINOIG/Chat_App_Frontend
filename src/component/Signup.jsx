@@ -32,7 +32,10 @@ const Signup = () => {
       .matches(/(?=.*[0-9])/, "Must include a number")
       .matches(/(?=.{8,})/, "Must not be less than 8 characters")
       .required("Password is required"),
-    number: yup.string().required("Phone number is required"),
+    number: yup
+      .string()
+      .matches(/^(\+234|234|0)[789][01]\d{8}$/, "Please enter a valid Nigerian phone number (e.g., 09087654321)")
+      .required("Phone number is required"),
   });
 
   const formik = useFormik({
@@ -67,108 +70,111 @@ const Signup = () => {
   });
 
   return (
-    <div className="min-h-screen flex p-9 items-center justify-center bg-blue-800">
+    <div className="min-h-screen flex p-9 items-center justify-center bg-surface-900">
       <Toaster position="top-center" />
 
-      <div className="bg-white p-8 text-blue-800 rounded-lg shadow-md w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+      <div className="bg-surface-800 p-8 text-surface-50 rounded-2xl shadow-card border border-surface-700 w-full max-w-sm">
+        <h2 className="text-3xl font-bold mb-6 text-center">Create Account</h2>
+        {error && (
+          <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
+            {error}
+          </div>
+        )}
         <form onSubmit={formik.handleSubmit}>
-          <div className="h-[80px] my-3">
-            <label htmlFor="username" className="font-semibold my-1">
+          <div className="mb-4">
+            <label htmlFor="username" className="block font-semibold mb-2 text-sm text-surface-300">
               Username
             </label>
-            <br />
             <input
               type="text"
               placeholder="Jane"
-              className="px-4 py-2 w-full border-2 mt-1 border-blue-800 focus:outline-blue-800"
+              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="username"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.username}
             />
             {formik.touched.username && formik.errors.username && (
-              <span className="text-red-500 my-1">
+              <span className="text-red-400 text-xs mt-1 block">
                 {formik.errors.username}
               </span>
             )}
           </div>
-          <div className="h-[80px] my-3">
-            <label htmlFor="email" className="font-semibold my-1">
-              Email
+          <div className="mb-4">
+            <label htmlFor="email" className="block font-semibold mb-2 text-sm text-surface-300">
+              Email Address
             </label>
-            <br />
             <input
               type="email"
-              placeholder="jane@gmail.com"
-              className="px-4 py-2 w-full border-2 mt-1 border-blue-800 focus:outline-blue-800"
+              placeholder="jane@example.com"
+              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="email"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.email}
             />
             {formik.touched.email && formik.errors.email && (
-              <span className="text-red-500 my-1">{formik.errors.email}</span>
+              <span className="text-red-400 text-xs mt-1 block">{formik.errors.email}</span>
             )}
           </div>
-          <div className="h-[80px] relative my-3">
-            <label htmlFor="password" className="font-semibold">
+          <div className="mb-4 relative">
+            <label htmlFor="password" className="block font-semibold mb-2 text-sm text-surface-300">
               Password
             </label>
-            <br />
             <input
               type={passwordVisible ? "text" : "password"}
               autoComplete="off"
-              className="border-2 mt-1 border-blue-800 py-2 px-4 w-full focus:outline-blue-800"
+              placeholder="••••••••"
+              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="password"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.password}
             />
             {formik.touched.password && formik.errors.password && (
-              <span className="text-red-500 my-1">
+              <span className="text-red-400 text-xs mt-1 block">
                 {formik.errors.password}
               </span>
             )}
             <span
               onClick={togglePasswordVisibility}
-              className="absolute top-[42px] right-5 cursor-pointer"
+              className="absolute top-[42px] right-4 cursor-pointer text-surface-400 hover:text-surface-200"
             >
               {!passwordVisible ? <IoEyeSharp /> : <BsEyeSlashFill />}
             </span>
           </div>
-          <div className="h-[80px] relative my-3">
-            <label
-              htmlFor="number"
-              className="block text-sm font-medium text-gray-700"
-            >
+          <div className="mb-6">
+            <label htmlFor="number" className="block font-semibold mb-2 text-sm text-surface-300">
               Phone Number
             </label>
             <input
-              type="number"
+              type="tel"
               name="number"
               id="number"
-              className="border-2 mt-1 border-blue-800 py-2 px-4 w-full focus:outline-blue-800"
-              placeholder="Phone Number"
+              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
+              placeholder="09087654321"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.number}
             />
             {formik.touched.number && formik.errors.number && (
-              <span className="text-red-500 my-1">{formik.errors.number}</span>
+              <span className="text-red-400 text-xs mt-1 block">{formik.errors.number}</span>
             )}
           </div>
-          <div className="flex items-center justify-between">
-            <button
-              type="submit"
-              className="bg-blue-800 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              disabled={loading}
-            >
-              {loading ? <ClipLoader size={20} color="#ffffff" /> : "Sign Up"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="bg-primary-600 hover:bg-primary-500 text-white font-semibold py-3 px-4 w-full rounded-lg transition-colors shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
+          >
+            {loading ? <ClipLoader size={20} color="#ffffff" /> : "Create Account"}
+          </button>
         </form>
+        <p className="text-center text-sm mt-6 text-surface-400">
+          Already have an account?{" "}
+          <a href="/signin" className="text-primary-400 hover:text-primary-300 font-semibold">
+            Sign In
+          </a>
+        </p>
       </div>
     </div>
   );

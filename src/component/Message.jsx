@@ -1,16 +1,13 @@
-import React, { useEffect, useRef } from 'react'
+import React from 'react'
 import ForwardMessage from './ForwardMessage';
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { motion } from 'framer-motion';
-
 
 const Message = ({
     msg,
     userId,
     selectedUser,
-    messageRefs,
     openToggle,
-    setOpenToggle,
     selectedMsg,
     handleToggle,
     data,
@@ -26,110 +23,121 @@ const Message = ({
     filteredUsers,
     setFilteredUsers,
     setForwardTo, 
-    displayUsers,
-    newData,
     users,
 }) => {
-        // const dropdownRef = useRef(null)
-        // useEffect(() => {
-        //     const handleClickOutside = (event) => {
-        //         if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        //             setOpenToggle(false);
-        //         }
-        //     };
-        //     document.addEventListener("mousedown", handleClickOutside);
-        //     return () => {
-        //         document.removeEventListener("mousedown", handleClickOutside);
-        //     };
-        // }, []);
-        return (
-    <div
-        // ref={(el) => {
-        //     if (el) {
-        //         messageRefs.current[msg._id] = el;
-        //     }
-        // }}
-        className={`flex group ${msg.senderId === userId ? 'justify-end' : 'justify-start'} p-2`}
-    >
-        <div className={`p-2 mb-5 rounded relative max-w-[70%] min-w-[30%] ${msg.senderId === userId ? 'bg-blue-200 text-blue-800 ' : 'bg-gray-200 text-gray-800'}`}  style={{
-              borderBottomLeftRadius: msg.senderId === userId ? "20px" : "5px",
-              borderBottomRightRadius: msg.senderId === userId ? "5px" : "20px",
-              borderTopLeftRadius: "20px",
-              borderTopRightRadius: "20px",
-            }}>
-            <div className="flex gap-1 itHems-center px-2">
-                <strong>{msg.senderId === userId ? 'You' : selectedUser.username}:</strong>
-                <p>{msg.content}</p>
-                <em className="text-sm text-gray-500">
-                {msg.timestamp && new Date(msg?.timestamp).toLocaleTimeString()}
-            </em>
-            </div>
+  // Handle both populated objects and string IDs
+  const getSenderId = (msg) => {
+    if (typeof msg.senderId === 'string') {
+      return msg.senderId;
+    }
+    if (typeof msg.senderId === 'object' && msg.senderId) {
+      return msg.senderId._id || msg.senderId.id;
+    }
+    return msg.sender || msg.from || null;
+  };
 
-            {msg.replyTo && (
-                <div
-                    onClick={() => scrollToMessage(msg?._id)}
-                    className="reply-info p-2 border-l-4 border-blue-500 bg-gray-100 text-sm mb-2"
-                >
-                    <span className="text-gray-600">Replying to:</span> <span>{msg?.replyTo}</span>
-                </div>
-            )}
-
-            {!openForwardToggle && (
-                <div onClick={() => handleToggle(msg?.messageId)} className="group cursor-pointer">
-                    <span
-                        className={`${msg.senderId === userId
-                                ? 'absolute top-[5%] left-[-14%] p-2 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 hidden group-hover:flex'
-                                : 'absolute top-[10%] right-[-14%] p-2 bg-blue-200 rounded-full cursor-pointer hover:bg-blue-300 hidden group-hover:flex'
-                            }`}
-                    >
-                        <BsThreeDotsVertical className="text-xl" />
-                    </span>
-                </div>
-            )}
-
-            {openToggle && selectedMsg === msg?.messageId && (
-                <motion.div id='message-container'
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.9 }}
-                    className={`${msg.senderId === userId
-                            ? 'absolute top-[0%] left-[-64%] w-1/2 p-2 z-10 bg-gray-200'
-                            : 'absolute top-[0%] right-[-64%] w-1/2 p-2 z-10 bg-blue-200'
-                        }`}
-                >
-                    {data?.map((item, index) => (
-                        <div
-                            key={index}
-                            className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-gray-300 rounded-full"
-                            onClick={() => handleAction(item?.text, msg.content, msg?.messageId, msg?.receiverId, msg?.senderId)}
-                        >
-                            {item?.icon}
-                            <span>{item?.text}</span>
-                        </div>
-                    ))}
-                </motion.div>
-            )}
-
-            {openForwardToggle && selectedToggle === msg?.messageId && (
-                <ForwardMessage
-                    users={users}
-                    forwardTo={forwardTo}
-                    handleForwardTo={handleForwardTo}
-                    forwardMessage={forwardMessage}
-                    setOpenForwardToggle={setOpenForwardToggle}
-                    selectedToggle={selectedToggle}
-                    handleForwardClick={handleForwardClick}
-                    filteredUsers={filteredUsers}
-                    setFilteredUsers={setFilteredUsers}
-                    setForwardTo={setForwardTo}
-                    data={data}
-                    displayUsers={displayUsers}
-                />
-            )}
+  const messageSenderId = getSenderId(msg);
+  const isSender = String(messageSenderId) === String(userId);
+  
+  return (
+    <div className={`flex group mb-2 px-2 ${isSender ? 'justify-end' : 'justify-start'}`}>
+      <div 
+        className={`p-3 rounded-2xl relative max-w-[70%] min-w-[120px] shadow-md ${
+          isSender 
+            ? 'bg-primary-600 text-white' 
+            : 'bg-surface-700 text-surface-50'
+        }`}
+        style={{
+          borderBottomLeftRadius: isSender ? "20px" : "5px",
+          borderBottomRightRadius: isSender ? "5px" : "20px",
+          borderTopLeftRadius: "20px",
+          borderTopRightRadius: "20px",
+        }}
+      >
+        <div className="flex gap-2 items-start px-1">
+          <strong className="text-sm">
+            {isSender ? 'You' : (
+              // Handle populated sender object or fallback to selectedUser
+              (typeof msg.senderId === 'object' && msg.senderId?.username) ||
+              selectedUser?.username || 
+              'Unknown'
+            )}:
+          </strong>
+          <p className="flex-1">{msg.content}</p>
         </div>
+        <em className="text-xs opacity-70 block mt-1 text-right">
+          {msg.timestamp && new Date(msg?.timestamp).toLocaleTimeString()}
+        </em>
+
+        {msg.replyTo && (
+          <div
+            onClick={() => scrollToMessage(msg?._id)}
+            className={`reply-info p-2 border-l-4 ${
+              isSender ? 'border-accent-400 bg-primary-700' : 'border-primary-400 bg-surface-800'
+            } text-sm mb-2 mt-2 rounded cursor-pointer hover:opacity-80 transition-opacity`}
+          >
+            <span className="opacity-70">Replying to:</span> <span className="font-semibold">{msg?.replyTo}</span>
+          </div>
+        )}
+
+        {!openForwardToggle && (
+          <div onClick={() => handleToggle(msg?.messageId)} className="group cursor-pointer">
+            <span
+              className={`${
+                isSender
+                  ? 'absolute top-[5%] left-[-14%] p-2 bg-surface-700 rounded-full cursor-pointer hover:bg-surface-600 hidden group-hover:flex'
+                  : 'absolute top-[10%] right-[-14%] p-2 bg-primary-600 rounded-full cursor-pointer hover:bg-primary-500 hidden group-hover:flex'
+              } transition-colors`}
+            >
+              <BsThreeDotsVertical className="text-xl text-surface-50" />
+            </span>
+          </div>
+        )}
+
+        {openToggle && selectedMsg === msg?.messageId && (
+          <motion.div
+            id='message-container'
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className={`${
+              isSender
+                ? 'absolute top-[0%] left-[-64%] w-1/2 p-2 z-10 bg-surface-800 border border-surface-600'
+                : 'absolute top-[0%] right-[-64%] w-1/2 p-2 z-10 bg-primary-700 border border-primary-500'
+            } rounded-lg shadow-lg`}
+          >
+            {data?.map((item, index) => (
+              <div
+                key={index}
+                className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-surface-700 rounded-lg transition-colors text-surface-50"
+                onClick={() => handleAction(item?.text, msg.content, msg?.messageId, msg?.receiverId, msg?.senderId)}
+              >
+                {item?.icon}
+                <span>{item?.text}</span>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {openForwardToggle && selectedToggle === msg?.messageId && (
+          <ForwardMessage
+            users={users}
+            forwardTo={forwardTo}
+            handleForwardTo={handleForwardTo}
+            forwardMessage={forwardMessage}
+            setOpenForwardToggle={setOpenForwardToggle}
+            selectedToggle={selectedToggle}
+            handleForwardClick={handleForwardClick}
+            filteredUsers={filteredUsers}
+            setFilteredUsers={setFilteredUsers}
+            setForwardTo={setForwardTo}
+            data={data}
+          />
+        )}
+      </div>
     </div>
-)};
+  );
+};
 
-
-export default Message
+export default Message;

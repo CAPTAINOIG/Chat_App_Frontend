@@ -11,18 +11,27 @@ const useAuthStore = create(
       token: null,
       isAuthenticated: false,
       isLoading: true,
+      lastChattedUserId: null,
+      hydrated: false, // Add hydration flag
 
       // Actions
-      setAuth: (user, token) => set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false
-      }),
+      setAuth: (user, token) => {
+        console.log("Setting auth with user:", user); // Debug log
+        const userId = user?._id || user?.id || null; // Handle both _id and id
+        set({
+          user,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+          lastChattedUserId: userId
+        });
+      },
 
       setUser: (user) => set({ user }),
 
       setToken: (token) => set({ token }),
+
+      setLastChattedUserId: (lastChattedUserId) => set({ lastChattedUserId }),
 
       logout: () => set({
         user: null,
@@ -33,10 +42,16 @@ const useAuthStore = create(
 
       setLoading: (loading) => set({ isLoading: loading }),
 
+      setHydrated: () => set({ hydrated: true }), // Action to mark as hydrated
+
       // Getters
-      getUserId: () => get().user?._id || null,
+      getUserId: () => {
+        const user = get().user;
+        return user?._id || user?.id || null;
+      },
       getUsername: () => get().user?.username || null,
       getToken: () => get().token,
+      getLastChattedUserId: () => get().lastChattedUserId,
 
       // Check if user is authenticated
       checkAuth: () => {
@@ -51,8 +66,13 @@ const useAuthStore = create(
       partialize: (state) => ({
         user: state.user,
         token: state.token,
-        isAuthenticated: state.isAuthenticated
-      })
+        isAuthenticated: state.isAuthenticated,
+        lastChattedUserId: state.lastChattedUserId
+      }),
+      onRehydrateStorage: () => (state) => {
+        // Mark as hydrated when storage is rehydrated
+        state?.setHydrated();
+      }
     }
   )
 );
