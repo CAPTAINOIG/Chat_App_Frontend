@@ -1,4 +1,4 @@
-import React from 'react'
+import { useEffect, useRef } from 'react';
 import ForwardMessage from './ForwardMessage';
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { motion } from 'framer-motion';
@@ -25,6 +25,8 @@ const Message = ({
     setForwardTo, 
     users,
 }) => {
+  const menuRef = useRef(null);
+
   // Handle both populated objects and string IDs
   const getSenderId = (msg) => {
     if (typeof msg.senderId === 'string') {
@@ -38,15 +40,34 @@ const Message = ({
 
   const messageSenderId = getSenderId(msg);
   const isSender = String(messageSenderId) === String(userId);
+
+  // Click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        // Only close if this message's menu is open
+        if (openToggle && selectedMsg === msg?.messageId) {
+          handleToggle(null); // Close the menu
+        }
+      }
+    };
+
+    if (openToggle && selectedMsg === msg?.messageId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openToggle, selectedMsg, msg?.messageId, handleToggle]);
   
   return (
-    <div className={`flex group mb-2 px-2 ${isSender ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex group mb-2 px-1 sm:px-2 mt-20 ${isSender ? 'justify-end' : 'justify-start'}`}>
       <div 
-        className={`p-3 rounded-2xl relative max-w-[70%] min-w-[120px] shadow-md ${
-          isSender 
+        className={`
+          relative p-2 sm:p-3 rounded-2xl max-w-[85%] sm:max-w-[70%] min-w-[120px] shadow-md
+          ${isSender 
             ? 'bg-primary-600 text-white' 
             : 'bg-surface-700 text-surface-50'
-        }`}
+          }
+        `}
         style={{
           borderBottomLeftRadius: isSender ? "20px" : "5px",
           borderBottomRightRadius: isSender ? "5px" : "20px",
@@ -54,16 +75,15 @@ const Message = ({
           borderTopRightRadius: "20px",
         }}
       >
-        <div className="flex gap-2 items-start px-1">
-          <strong className="text-sm">
+        <div className="flex gap-1 sm:gap-2 items-start px-1">
+          <strong className="text-xs sm:text-sm flex-shrink-0">
             {isSender ? 'You' : (
-              // Handle populated sender object or fallback to selectedUser
               (typeof msg.senderId === 'object' && msg.senderId?.username) ||
               selectedUser?.username || 
               'Unknown'
             )}:
           </strong>
-          <p className="flex-1">{msg.content}</p>
+          <p className="flex-1 text-sm sm:text-base break-words">{msg.content}</p>
         </div>
         <em className="text-xs opacity-70 block mt-1 text-right">
           {msg.timestamp && new Date(msg?.timestamp).toLocaleTimeString()}
@@ -81,40 +101,46 @@ const Message = ({
         )}
 
         {!openForwardToggle && (
-          <div onClick={() => handleToggle(msg?.messageId)} className="group cursor-pointer">
-            <span
-              className={`${
-                isSender
-                  ? 'absolute top-[5%] left-[-14%] p-2 bg-surface-700 rounded-full cursor-pointer hover:bg-surface-600 hidden group-hover:flex'
-                  : 'absolute top-[10%] right-[-14%] p-2 bg-primary-600 rounded-full cursor-pointer hover:bg-primary-500 hidden group-hover:flex'
-              } transition-colors`}
-            >
-              <BsThreeDotsVertical className="text-xl text-surface-50" />
-            </span>
-          </div>
+          <button
+            onClick={() => handleToggle(msg?.messageId)}
+            className={`
+              absolute top-1 p-2 rounded-full cursor-pointer transition-all duration-200 z-10
+              sm:opacity-0 sm:group-hover:opacity-100 opacity-70 hover:opacity-100 hover:scale-110
+              ${isSender
+                ? '-left-11 sm:-left-12 bg-surface-700 hover:bg-surface-600 text-surface-200'
+                : '-right-11 sm:-right-12 bg-primary-600 hover:bg-primary-500 text-white'
+              }
+              shadow-lg
+            `}
+          >
+            <BsThreeDotsVertical className="text-sm" />
+          </button>
         )}
 
         {openToggle && selectedMsg === msg?.messageId && (
           <motion.div
-            id='message-container'
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className={`${
-              isSender
-                ? 'absolute top-[0%] left-[-64%] w-1/2 p-2 z-10 bg-surface-800 border border-surface-600'
-                : 'absolute top-[0%] right-[-64%] w-1/2 p-2 z-10 bg-primary-700 border border-primary-500'
-            } rounded-lg shadow-lg`}
+            ref={menuRef}
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className={`
+              absolute z-30 min-w-[160px] bg-surface-800/95 backdrop-blur-md border border-surface-600/50 
+              rounded-xl shadow-2xl overflow-hidden
+              ${isSender 
+                ? 'right-0 top-full mt-2' 
+                : 'left-0 top-full mt-2'
+              }
+            `}
           >
             {data?.map((item, index) => (
               <div
                 key={index}
-                className="flex items-center space-x-2 p-2 cursor-pointer hover:bg-surface-700 rounded-lg transition-colors text-surface-50"
+                className="flex items-center space-x-3 px-4 py-3 cursor-pointer hover:bg-surface-700/80 transition-colors text-surface-50 text-sm border-b border-surface-700/30 last:border-b-0"
                 onClick={() => handleAction(item?.text, msg.content, msg?.messageId, msg?.receiverId, msg?.senderId)}
               >
-                {item?.icon}
-                <span>{item?.text}</span>
+                <span className="text-surface-400 flex-shrink-0">{item?.icon}</span>
+                <span className="font-medium">{item?.text}</span>
               </div>
             ))}
           </motion.div>

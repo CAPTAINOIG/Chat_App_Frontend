@@ -358,81 +358,137 @@ const Chat = () => {
   };
 
   return (
-    <div className="background">
+    <div className="background min-h-screen">
       <Toaster position="top-center" />
-      <div className="flex flex-col md:flex-row h-screen">
-        <UserList
-          users={users}
-          handleUserClick={handleUserClick}
-          accountOwner={accountOwner}
-          image={image}
-        />
+      <div className="flex h-screen">
+        {/* User List - Responsive Sidebar */}
+        <div className={`
+          ${selectedUser ? 'hidden lg:flex' : 'flex'} 
+          flex-col
+          w-full sm:w-80 lg:w-1/4 xl:w-1/5
+          border-r border-surface-700
+          ${selectedUser ? 'lg:min-w-[300px]' : ''}
+        `}>
+          <UserList
+            users={users}
+            handleUserClick={handleUserClick}
+            accountOwner={accountOwner}
+            image={image}
+          />
+        </div>
 
-        <div className="flex-1 flex flex-col bg-opacity-80" id="scroll-container">
-          <div className="flex-1">
-            {selectedUser ? (
-              <>
+        {/* Chat Area - Responsive Main Content */}
+        <div className={`
+          ${selectedUser ? 'flex' : 'hidden lg:flex'} 
+          flex-col flex-1 
+          bg-surface-900/30 backdrop-blur-sm
+          relative overflow-hidden
+        `}>
+          {selectedUser ? (
+            <>
+              {/* Mobile Back Button */}
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="lg:hidden absolute top-4 left-4 z-20 bg-surface-800/90 hover:bg-surface-700 text-surface-200 p-2 rounded-full transition-colors shadow-lg backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {/* Chat Header */}
+              <div className="flex-shrink-0 z-10">
                 <ChatHeader 
                   selectedUser={selectedUser}
                   image={image}
                   setImage={setImage}
                 />
+              </div>
 
+              {/* Pinned Messages */}
+              <div className="flex-shrink-0">
                 <PinnedMessages
                   pinnedMessage={pinnedMessage}
                   setPinnedMessage={setPinnedMessage}
                   userId={userId}
                 />
+              </div>
 
+              {/* Typing Indicator */}
+              <div className="flex-shrink-0">
                 <TypingIndicator
                   isTyping={isTyping}
                   typingUser={typingUser}
                   users={users}
                 />
+              </div>
 
-                <MessageList
-                  messages={messages}
-                  userId={userId}
-                  selectedUser={selectedUser}
-                  messageRefs={messageRefs}
-                  openToggle={openToggle}
-                  setOpenToggle={setOpenToggle}
-                  selectedMsg={selectedMsg}
-                  handleToggle={handleToggle}
-                  data={messageActions}
-                  handleAction={handleAction}
-                  openForwardToggle={openForwardToggle}
-                  selectedToggle={selectedToggle}
-                  forwardTo={forwardTo}
-                  handleForwardTo={handleForwardTo}
-                  handleForwardClick={handleForwardClick}
-                  forwardMessage={forwardMessage}
-                  setOpenForwardToggle={setOpenForwardToggle}
-                  users={users}
-                  scrollToMessage={scrollToMessage}
-                  filteredUsers={filteredUsers}
-                  setFilteredUsers={setFilteredUsers}
-                  setForwardTo={setForwardTo}
-                />
-              </>
-            ) : (
-              <p className="text-surface-400 bg-surface-800/50 backdrop-blur-sm border border-surface-700 rounded-lg py-12 p-6 text-center text-lg">
-                Select a user to start chatting.
-              </p>
-            )}
-          </div>
-          <ChatInput
-            handleSubmit={handleSubmit}
-            toggleEmojiPicker={toggleEmojiPicker}
-            showEmojiPicker={showEmojiPicker}
-            handleEmojiClick={handleEmojiClick}
-            message={message}
-            setMessage={setMessage}
-            emitTyping={emitTyping}
-            emitStopTyping={emitStopTyping}
-            replyMessage={replyMessage}
-            setReplyMessage={setReplyMessage}
-          />
+              {/* Messages Container */}
+              <div className="flex-1 relative overflow-hidden">
+                <div className="absolute inset-0 px-3 sm:px-4 lg:px-6 py-4 overflow-y-auto">
+                  <MessageList
+                    messages={messages}
+                    userId={userId}
+                    selectedUser={selectedUser}
+                    messageRefs={messageRefs}
+                    openToggle={openToggle}
+                    setOpenToggle={setOpenToggle}
+                    selectedMsg={selectedMsg}
+                    handleToggle={handleToggle}
+                    data={messageActions}
+                    handleAction={handleAction}
+                    openForwardToggle={openForwardToggle}
+                    selectedToggle={selectedToggle}
+                    forwardTo={forwardTo}
+                    handleForwardTo={handleForwardTo}
+                    handleForwardClick={handleForwardClick}
+                    forwardMessage={forwardMessage}
+                    setOpenForwardToggle={setOpenForwardToggle}
+                    users={users}
+                    scrollToMessage={scrollToMessage}
+                    filteredUsers={filteredUsers}
+                    setFilteredUsers={setFilteredUsers}
+                    setForwardTo={setForwardTo}
+                  />
+                </div>
+              </div>
+
+              {/* Chat Input */}
+              <div className="flex-shrink-0 bg-surface-900/95 backdrop-blur-sm border-t border-surface-700">
+                <div className="p-3 sm:p-4">
+                  <ChatInput
+                    handleSubmit={handleSubmit}
+                    toggleEmojiPicker={toggleEmojiPicker}
+                    showEmojiPicker={showEmojiPicker}
+                    handleEmojiClick={handleEmojiClick}
+                    message={message}
+                    setMessage={setMessage}
+                    emitTyping={emitTyping}
+                    emitStopTyping={emitStopTyping}
+                    replyMessage={replyMessage}
+                    setReplyMessage={setReplyMessage}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            /* No Chat Selected State */
+            <div className="flex items-center justify-center h-full p-6">
+              <div className="text-center max-w-md">
+                <div className="w-16 h-16 mx-auto mb-4 bg-surface-700 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-surface-50 mb-2">
+                  Welcome to Chat
+                </h3>
+                <p className="text-surface-400 text-sm sm:text-base">
+                  Select a conversation from the sidebar to start chatting
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

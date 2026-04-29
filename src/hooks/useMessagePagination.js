@@ -21,7 +21,6 @@ export const useMessagePagination = (userId) => {
         page: pageNum,
         limit: MESSAGES_PER_PAGE
       });
-
       if (response.status) {
         const newMessages = response.messages || [];
         const pagination = response.pagination || {};
@@ -38,7 +37,6 @@ export const useMessagePagination = (userId) => {
         setHasMore(pageNum < (pagination.totalPages || 1));
       }
     } catch (error) {
-      console.error('Failed to fetch messages:', error);
       toast.error("Failed to fetch messages");
     } finally {
       setLoading(false);

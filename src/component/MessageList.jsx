@@ -26,7 +26,7 @@ const MessageList = ({
   users,
 }) => {
   return (
-    <div className="space-y-2 py-[12%]" id="scroll">
+    <div className="space-y-2" id="scroll">
       {messages.length > 0 ? (
         messages.map((msg, index) => (
           <Message

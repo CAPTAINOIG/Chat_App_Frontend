@@ -16,7 +16,7 @@ const ForwardMessage = ({
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -20 }}
     transition={{ duration: 0.3 }}
-    className="absolute top-[10%] right-[110%] w-full p-3 bg-surface-800 border border-surface-600 rounded-lg shadow-lg"
+    className="absolute top-[10%] right-[110%] p-3 bg-surface-800 border border-surface-600 rounded-lg shadow-lg"
   >
     <div className="float-right text-red-400 hover:text-red-300 cursor-pointer">
       <button type="button" onClick={() => setOpenForwardToggle("")}>

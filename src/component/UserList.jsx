@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import user from "../assets/image/user.png";
-import { Tooltip } from "antd";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -17,8 +16,7 @@ import {
 import { AiOutlineEdit } from "react-icons/ai";
 import { GrStorage } from "react-icons/gr";
 import { TbTableShortcut } from "react-icons/tb";
-import axiosInstance from "../../utils/AxiosInstance";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import { useAuth } from "./AuthProvider";
 import { 
   uploadProfilePicture, 
@@ -92,6 +90,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpenToggle(false);
+        setEditToggle(false);
         setViewImage(false);
       }
     };
@@ -144,8 +143,8 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
     setLoading(true);
     try {
       const response = await fetchProfilePicture(userId);
-      if (response?.url) {
-        setImage(response.url);
+      if (response?.data?.url) {
+        setImage(response.data.url);
         setLoading(false);
         setEditToggle(false);
       } else {
@@ -153,7 +152,6 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         setLoading(false);
       }
     } catch (error) {
-      console.error("Failed to fetch profile picture:", error);
       if (error.response?.status !== 404) {
         toast.error(handleApiError(error, "Failed to load profile picture"));
       }
@@ -178,7 +176,6 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
   const handleLogOut = () => {
     logout();
     navigate("/signin");
-    // window.location.reload();
   };
 
   const handleUpdate = async () => {
@@ -196,20 +193,19 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
   const getProfileUpdate = async () => {
     try {
       const response = await getProfileData(userId);
-      setProfileName(response?.userDetail?.profileName || "");
-      setAboutMe(response?.userDetail?.aboutMe || "");
+      setProfileName(response?.data?.user?.profileName || "");
+      setAboutMe(response?.data?.user?.aboutMe || "");
     } catch (error) {
       console.error("Failed to get profile data:", error);
     }
   };
 
   return (
-    <div className="md:w-1/4 w-full p-4 border-b md:border-b-0 md:border-r border-surface-700 bg-surface-800/50 backdrop-blur-sm overflow-y-auto">
-      <Toaster position="top-center" />
-      <h2 className="text-xl font-bold mb-4 text-surface-50 bg-surface-900 border border-surface-700 rounded-lg p-3">
+    <div className="h-full flex flex-col p-3 sm:p-4 overflow-y-auto">
+      <h2 className="text-lg sm:text-xl font-bold mb-4 text-surface-50 bg-surface-900 border border-surface-700 rounded-lg p-3">
         Conversations
       </h2>
-      <div className="space-y-2">
+      <div className="space-y-2 flex-1">
         {users.length > 0 ? (
           users.map((item, i) => (
             <div
@@ -218,16 +214,16 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
               onClick={() => handleUserClick(item)}
             >
               <div className="flex items-center gap-3">
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   {item?.profilePicture ? (
                     <img
-                      className="w-12 h-12 rounded-full border-2 border-primary-500 object-cover"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-primary-500 object-cover"
                       src={item.profilePicture}
                       alt="Profile"
                     />
                   ) : (
                     <img
-                      className="w-12 h-12 rounded-full border-2 border-surface-600 object-cover"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-surface-600 object-cover"
                       src={user}
                       alt="Profile"
                     />
@@ -236,40 +232,54 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-accent-400 border-2 border-surface-900 rounded-full"></span>
                   )}
                 </div>
-                <span className="font-medium">{item?.username || "Unknown User"}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-sm sm:text-base truncate block">
+                    {item?.username || "Unknown User"}
+                  </span>
+                  {item.online && (
+                    <span className="text-xs text-accent-400">Online</span>
+                  )}
+                </div>
               </div>
             </div>
           ))
         ) : (
-          <p className="text-center text-surface-500 py-8">No users available</p>
+          <div className="flex items-center justify-center py-8">
+            <p className="text-center text-surface-500 text-sm">No users available</p>
+          </div>
         )}
       </div>
 
-      <div
-        onClick={handleAction}
-        className="fixed bottom-0 left-0 items-center rounded-full border-2 border-primary-500 m-2 cursor-pointer hover:border-primary-400 transition-colors"
-      >
-        <Tooltip title="profile">
-          {loading ? (
-            <div className="w-14 h-14 rounded-full border-4 border-primary-500 bg-surface-700 animate-pulse"></div>
-          ) : image ? (
-            <div>
+      {/* Profile Button - Fixed at bottom */}
+      <div className="mt-4 pt-4 border-t border-surface-700">
+        <div
+          onClick={handleAction}
+          className="flex items-center gap-3 p-3 rounded-lg border-2 border-primary-500 cursor-pointer hover:border-primary-400 transition-colors bg-surface-900/50"
+        >
+          <div className="relative flex-shrink-0">
+            {loading ? (
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-4 border-primary-500 bg-surface-700 animate-pulse"></div>
+            ) : image ? (
               <img
-                className="w-14 h-14 rounded-full object-cover"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
                 src={image}
                 alt="Profile"
               />
-            </div>
-          ) : (
-            <div>
+            ) : (
               <img
-                className="w-14 h-14 rounded-full object-cover"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
                 src={user}
                 alt="Profile"
               />
-            </div>
-          )}
-        </Tooltip>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="font-medium text-surface-50 text-sm sm:text-base truncate block">
+              {accountOwner?.username || "Your Profile"}
+            </span>
+            <span className="text-xs text-surface-400">Tap to edit profile</span>
+          </div>
+        </div>
       </div>
 
       {openToggle && (
@@ -279,6 +289,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
           className="fixed top-20 left-4 right-4 md:left-4 md:right-auto md:w-[600px] z-50 bg-surface-800 shadow-2xl rounded-2xl border border-surface-700 max-h-[80vh] overflow-y-auto"
+          ref={dropdownRef}
         >
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-0">
             {/* Left sidebar menu */}
@@ -313,13 +324,15 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                       alt="Profile"
                     />
                   )}
-                  <div className="absolute bottom-0 right-0 bg-primary-600 rounded-full p-2 cursor-pointer hover:bg-primary-500 transition-colors shadow-lg">
+                  <button
+                    onClick={handleEdit}
+                    className="absolute bottom-0 right-0 bg-primary-600 rounded-full p-2 cursor-pointer hover:bg-primary-500 transition-colors shadow-lg z-10"
+                  >
                     <CiEdit
-                      onClick={handleEdit}
                       className="text-white"
                       size={20}
                     />
-                  </div>
+                  </button>
                 </div>
               </div>
 
@@ -427,7 +440,8 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-surface-800 border border-surface-600 rounded-xl shadow-2xl w-56 overflow-hidden z-10"
+                  className="absolute top-48 left-1/2 transform -translate-x-1/2 bg-surface-800 border border-surface-600 rounded-xl shadow-2xl w-56 overflow-hidden z-[60]"
+                  ref={dropdownRef}
                 >
                   <button
                     onClick={() => document.getElementById("avatarInput").click()}
