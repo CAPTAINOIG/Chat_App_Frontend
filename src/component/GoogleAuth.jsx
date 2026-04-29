@@ -15,10 +15,22 @@ const GoogleAuth = () => {
     try {
       const googleToken = response.credential;
       const res = await googleAuth(googleToken);
-      // Use auth store instead of localStorage
-      setAuth(res?.userDetail, res?.userToken);
-      toast.success(`Welcome back, ${res?.username}!`);
-      navigate("/dashboard");
+      let user, token;
+      if (res.success && res.data) {
+        user = res.data.user || res.data.userDetail;
+        token = res.data.token || res.data.userToken;
+      } else {
+        user = res.userDetail || res.user;
+        token = res.userToken || res.token;
+      }
+      
+      if (user && token) {
+        setAuth(user, token);
+        toast.success(`Welcome back, ${user.username || user.name}!`);
+        navigate("/dashboard");
+      } else {
+        throw new Error("Invalid response structure");
+      }
     } catch (err) {
       toast.error("Authentication failed");
     }

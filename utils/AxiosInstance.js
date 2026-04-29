@@ -35,12 +35,16 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    // Only auto-logout on specific auth errors, not server errors
+    if (error.response?.status === 401 && 
+        error.response?.data?.message !== "secretOrPrivateKey must have a value") {
+      // Token expired or invalid (but not server config error)
       const authStore = useAuthStore.getState();
       authStore.logout();
-      // Redirect to signin page (you might want to handle this differently)
-      window.location.href = '/signin';
+      // Only redirect if not already on signin page
+      if (window.location.pathname !== '/signin') {
+        window.location.href = '/signin';
+      }
     }
     return Promise.reject(error);
   }

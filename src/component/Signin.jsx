@@ -63,7 +63,12 @@ const Signin = () => {
         
         console.log(err);
         setLoading(false);
-        if (err.response && err.response.data) {
+        
+        // Handle specific backend configuration errors
+        if (err.response?.data?.message === "secretOrPrivateKey must have a value") {
+          setError("Backend configuration error. Please contact support.");
+          toast.error("Server configuration issue. Please try again later.");
+        } else if (err.response && err.response.data) {
           setError(err.response.data.message);
           toast.error("Wrong password, please type the correct password");
         } else {

@@ -18,11 +18,15 @@ const Dashboard = () => {
         const response = await dashboard();
       } catch (err) {
         if (err.response && err.response.status === 401) {
-          toast.error("Token has expired or is invalid");
+          toast.error("Session expired. Please sign in again.");
+          logout();
+          navigate("/signin");
+        } else if (err.response && err.response.status === 403) {
+          toast.error("Access denied. Please sign in again.");
           logout();
           navigate("/signin");
         } else {
-          toast.error("An error occurred. Please try again later.");
+          toast.error("Dashboard data unavailable, but you can still chat.");
         }
       }
     };
