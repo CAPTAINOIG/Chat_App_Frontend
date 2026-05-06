@@ -104,11 +104,6 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
     setOpenToggle(!openToggle);
   };
 
-  useEffect(() => {
-    fetchProfilePic();
-    getProfileUpdate();
-  }, []);
-
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -152,6 +147,7 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         setLoading(false);
       }
     } catch (error) {
+      console.error("Failed to fetch profile picture:", error);
       if (error.response?.status !== 404) {
         toast.error(handleApiError(error, "Failed to load profile picture"));
       }
@@ -193,12 +189,17 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
   const getProfileUpdate = async () => {
     try {
       const response = await getProfileData(userId);
-      setProfileName(response?.data?.user?.profileName || "");
-      setAboutMe(response?.data?.user?.aboutMe || "");
+      setProfileName(response?.userDetail?.profileName || "");
+      setAboutMe(response?.userDetail?.aboutMe || "");
     } catch (error) {
       console.error("Failed to get profile data:", error);
     }
   };
+
+  useEffect(() => {
+    fetchProfilePic();
+    getProfileUpdate();
+  }, []);
 
   return (
     <div className="h-full flex flex-col p-3 sm:p-4 overflow-y-auto">

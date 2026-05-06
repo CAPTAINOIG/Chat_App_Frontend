@@ -39,24 +39,9 @@ export const useMessages = (userId, socket) => {
     if (!content.trim() || !receiverId || !socket) return false;
 
     try {
-      const result = socket.sendMessage ? 
-        socket.sendMessage(receiverId, content.trim(), replyMessage) :
-        (() => {
-          const messageId = uuidv4();
-          const payload = {
-            messageId,
-            senderId: userId,
-            receiverId,
-            content: content.trim(),
-            replyTo: replyMessage,
-            timestamp: new Date(),
-          };
-          socket.emit("chat message", payload);
-          return { messageId, payload };
-        })();
-
-      const messageData = result.payload || {
-        messageId: result.messageId || uuidv4(),
+      const messageId = uuidv4();
+      const payload = {
+        messageId,
         senderId: userId,
         receiverId,
         content: content.trim(),
@@ -64,10 +49,12 @@ export const useMessages = (userId, socket) => {
         timestamp: new Date(),
       };
 
+      socket.emit("chat message", payload);
+
       setMessages((prevMessages) => {
-        const exists = prevMessages.some(msg => msg.messageId === messageData.messageId);
+        const exists = prevMessages.some(msg => msg.messageId === messageId);
         if (exists) return prevMessages;
-        return [...prevMessages, messageData];
+        return [...prevMessages, payload];
       });
       
       return true;
@@ -101,18 +88,16 @@ export const useMessages = (userId, socket) => {
   const pinMessage = useCallback(async (messageId, receiverId, senderId) => {
     try {
       const response = await pinMessageApi(messageId, senderId, receiverId);
-      
-      if (response.status === "success") {
+      if (response.status === "success" || response.success) {
         toast.success(response.message || "Message pinned successfully");
         await fetchPinnedMessages(senderId, receiverId);
         return true;
       } else {
-        toast.error(response.error?.message || "Failed to pin message");
+        toast.error(response.error?.message || response.message || "Failed to pin message");
         return false;
       }
     } catch (error) {
-      console.error("Pin message error:", error);
-      toast.error(handleApiError(error, "Failed to pin message"));
+      toast.error(handleApiError(error));
       return false;
     }
   }, []);
@@ -121,18 +106,16 @@ export const useMessages = (userId, socket) => {
   const unpinMessage = useCallback(async (messageId, receiverId, senderId) => {
     try {
       const response = await unpinMessageApi(messageId, senderId, receiverId);
-
-      if (response.status === "success") {
+      if (response.status === "success" || response.success) {
         toast.success(response.message || "Message unpinned successfully");
         setPinnedMessage(response?.pinMessage);
         return true;
       } else {
-        toast.error(response.error?.message || "Failed to unpin message");
+        toast.error(response.error?.message || response.message || "Failed to unpin message");
         return false;
       }
     } catch (error) {
-      console.error("Unpin message error:", error);
-      toast.error(handleApiError(error, "Failed to unpin message"));
+      toast.error(handleApiError(error));
       return false;
     }
   }, []);
@@ -145,7 +128,6 @@ export const useMessages = (userId, socket) => {
         setPinnedMessage(response.pinMessage);
       }
     } catch (error) {
-      console.error("Failed to load pinned messages:", error);
     }
   }, []);
 

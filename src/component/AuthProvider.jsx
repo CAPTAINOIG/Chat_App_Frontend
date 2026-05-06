@@ -31,17 +31,12 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
 
       try {
-        // Check if we have stored auth data
         if (checkAuth()) {
-          // Verify token is still valid by calling dashboard
           await dashboard();
-          // If successful, auth is valid
         } else {
-          // No stored auth or invalid
           logout();
         }
       } catch (error) {
-        console.error('Auth initialization failed:', error);
         logout();
       } finally {
         setLoading(false);

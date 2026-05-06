@@ -13,22 +13,18 @@ const ChatInput = ({
   replyMessage,
   setReplyMessage,
 }) => {
-  // keep a ref so timeout persists across renders
+  
   const typingTimeoutRef = useRef(null);
 
   const handleInputChange = (e) => {
     setMessage(e.target.value);
     emitTyping();
-
-    // clear old timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-
-    // set a new one
     typingTimeoutRef.current = setTimeout(() => {
       emitStopTyping();
-    }, 2000); // stop after 2s of inactivity
+    }, 2000);
   };
 
   return (

@@ -1,23 +1,19 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-// Use sessionStorage instead of localStorage for better security
-// sessionStorage is cleared when the browser tab is closed
 const useAuthStore = create(
   persist(
     (set, get) => ({
-      // Auth state
       user: null,
       token: null,
       isAuthenticated: false,
       isLoading: true,
       lastChattedUserId: null,
-      hydrated: false, // Add hydration flag
+      hydrated: false, 
 
       // Actions
       setAuth: (user, token) => {
-        console.log("Setting auth with user:", user); // Debug log
-        const userId = user?._id || user?.id || null; // Handle both _id and id
+        const userId = user?._id || user?.id || null; 
         set({
           user,
           token,
@@ -42,7 +38,7 @@ const useAuthStore = create(
 
       setLoading: (loading) => set({ isLoading: loading }),
 
-      setHydrated: () => set({ hydrated: true }), // Action to mark as hydrated
+      setHydrated: () => set({ hydrated: true }),
 
       // Getters
       getUserId: () => {
@@ -70,7 +66,6 @@ const useAuthStore = create(
         lastChattedUserId: state.lastChattedUserId
       }),
       onRehydrateStorage: () => (state) => {
-        // Mark as hydrated when storage is rehydrated
         state?.setHydrated();
       }
     }

@@ -40,7 +40,7 @@ export const signUp = async (user) => {
 
 export const signIn = async (user) => {
   const response = await axiosInstance.post(ENDPOINTS.SIGNIN, user);
-  return response.data; // This will return the full response including success, message, data
+  return response.data;
 };
 
 export const dashboard = async () => {
@@ -82,20 +82,25 @@ export const deleteMessage = async (messageId) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const pinMessage = async (messageId, senderId, receiverId) => {
-  const response = await axiosInstance.post(ENDPOINTS.PIN_MESSAGE, {
+  console.log("=== PIN MESSAGE API CALL ===");
+  console.log("API Parameters:", { messageId, senderId, receiverId });
+  
+  const payload = {
     messageId,
     senderId,
     receiverId,
-  });
+  };
+  const response = await axiosInstance.post(ENDPOINTS.PIN_MESSAGE, payload);
   return response.data;
 };
 
 export const unpinMessage = async (messageId, senderId, receiverId) => {
-  const response = await axiosInstance.post(ENDPOINTS.UNPIN_MESSAGE, {
+  const payload = {
     messageId,
     senderId,
     receiverId,
-  });
+  };
+  const response = await axiosInstance.post(ENDPOINTS.UNPIN_MESSAGE, payload);
   return response.data;
 };
 
@@ -144,38 +149,35 @@ export const getProfileData = async (userId) => {
 // Helper function to handle API errors consistently
 export const handleApiError = (error, defaultMessage = "An error occurred") => {
   if (error.response) {
-    // Server responded with error status
     const status = error.response.status;
     const message = error.response.data?.message || error.response.data?.error;
-    
     switch (status) {
       case 400:
         return message || "Invalid request data";
       case 401:
-        return "You're not authorized. Please sign in again.";
+        return message || "You're not authorized. Please sign in again.";
       case 403:
-        return "You don't have permission to perform this action";
+        return message || "You don't have permission to perform this action";
       case 404:
-        return "Resource not found";
+        return message || "Resource not found";
       case 413:
-        return "File is too large";
+        return message || "File is too large";
       case 500:
-        return "Server error. Please try again later.";
+        return message || "Server error. Please try again later.";
       default:
         return message || `Request failed with status ${status}`;
     }
   } else if (error.request) {
-    // Network error
     return "Network error. Please check your connection.";
   } else {
-    // Other error
     return defaultMessage;
   }
 };
 
 // Helper function to validate file uploads
 export const validateImageFile = (file) => {
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  // 5MB
+  const maxSize = 5 * 1024 * 1024; 
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   
   if (!allowedTypes.includes(file.type)) {
@@ -219,6 +221,8 @@ AUTHENTICATION:
 MESSAGES:
 - getMessage(userId, senderId, pagination?)
 - deleteMessage(messageId)
+- getUnreadCount()
+- markMessagesAsRead(senderId)
 
 MESSAGE ACTIONS:
 - pinMessage(messageId, senderId, receiverId)

@@ -60,11 +60,7 @@ const Signin = () => {
           throw new Error("Invalid response structure from server");
         }
       } catch (err) {
-        
-        console.log(err);
         setLoading(false);
-        
-        // Handle specific backend configuration errors
         if (err.response?.data?.message === "secretOrPrivateKey must have a value") {
           setError("Backend configuration error. Please contact support.");
           toast.error("Server configuration issue. Please try again later.");

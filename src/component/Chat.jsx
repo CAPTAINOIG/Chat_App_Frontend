@@ -94,12 +94,8 @@ const Chat = () => {
     // Listen for new messages
     const handleNewMessage = (message) => {
       setMessages((prevMessages) => {
-        // Prevent duplicates by checking if message already exists
         const exists = prevMessages.some(msg => msg.messageId === message.messageId);
-        if (exists) {
-          console.log("Duplicate message prevented:", message.messageId);
-          return prevMessages;
-        }
+        if (exists) return prevMessages;
         return [...prevMessages, message];
       });
     };
@@ -107,12 +103,8 @@ const Chat = () => {
     // Listen for received messages
     const handleReceiveMessage = (msg) => {
       setMessages((prevMessages) => {
-        // Prevent duplicates by checking if message already exists
         const exists = prevMessages.some(message => message.messageId === msg.messageId);
-        if (exists) {
-          console.log("Duplicate message prevented:", msg.messageId);
-          return prevMessages;
-        }
+        if (exists) return prevMessages;
         return [...prevMessages, msg];
       });
     };
@@ -128,11 +120,8 @@ const Chat = () => {
     // Fallback: Try HTTP API if Socket.IO doesn't return users after 3 seconds
     const fallbackTimer = setTimeout(async () => {
       if (users.length === 0) {
-        console.log("Socket.IO didn't return users, trying HTTP API fallback");
         try {
           const response = await getUsers();
-          console.log("HTTP API users response:", response);
-          
           let usersData = [];
           if (response.success && response.data && response.data.users) {
             usersData = response.data.users;
@@ -154,7 +143,6 @@ const Chat = () => {
             setUsers(updatedUsers);
           }
         } catch (error) {
-          console.error("Failed to fetch users via HTTP API:", error);
         }
       }
     }, 3000);
@@ -163,7 +151,7 @@ const Chat = () => {
     const lastChattedUserId = getLastChattedUserId();
     if (lastChattedUserId) {
       setReceiverId(lastChattedUserId);
-      fetchMessages(lastChattedUserId);
+      // Remove fetchMessages call to prevent infinite loop
       
       // Find and set selected user
       emitEvent(SOCKET_EVENTS.GET_USERS, { token });
@@ -175,7 +163,7 @@ const Chat = () => {
       offEvent(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
       offEvent(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
     };
-  }, [socket, onlineUsers, userId, token]);
+  }, [socket, onEvent, offEvent, emitEvent, token, userId, onlineUsers]);
 
   // Typing indicators
   useEffect(() => {
@@ -187,7 +175,7 @@ const Chat = () => {
         setTypingUser(senderId);
       }
     };
-
+    // you log in, selects segun, hes the selected user when hes sending msg i see it as typing so hes also the sender
     const handleStopTypingEvent = ({ senderId, receiverId }) => {
       if (senderId === selectedUser._id && receiverId === userId) {
         setIsTyping(false);
@@ -243,6 +231,18 @@ const Chat = () => {
   };
 
   const handleAction = (action, messageContent, messageId, receiverId, senderId) => {
+    // Extract IDs from objects if they are populated
+    const extractId = (userObj) => {
+      if (typeof userObj === 'string') return userObj;
+      if (typeof userObj === 'object' && userObj) {
+        return userObj._id || userObj.id;
+      }
+      return null;
+    };
+    
+    const receiverIdStr = extractId(receiverId);
+    const senderIdStr = extractId(senderId);
+    
     switch (action) {
       case "Copy":
         handleCopy(messageContent);
@@ -257,10 +257,12 @@ const Chat = () => {
         handleForwardMessage(messageId, users);
         break;
       case "Pin":
-        handlePinnedMessage(messageId, receiverId, senderId);
+        // For pinning, use current user as sender and the other user as receiver
+        handlePinnedMessage(messageId, selectedUser?._id, userId);
         break;
       case "Unpin":
-        handleUnPinnedMessage(messageId, receiverId, senderId);
+        // For unpinning, use current user as sender and the other user as receiver
+        handleUnPinnedMessage(messageId, selectedUser?._id, userId);
         break;
     }
   };
