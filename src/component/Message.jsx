@@ -24,6 +24,8 @@ const Message = ({
     setFilteredUsers,
     setForwardTo, 
     users,
+    isDeleting = false,
+    isPinning = false,
 }) => {
   const menuRef = useRef(null);
 
@@ -85,9 +87,20 @@ const Message = ({
           </strong>
           <p className="flex-1 text-sm sm:text-base break-words">{msg.content}</p>
         </div>
-        <em className="text-xs opacity-70 block mt-1 text-right">
-          {msg.timestamp && new Date(msg?.timestamp).toLocaleTimeString()}
-        </em>
+        <div className="flex justify-between items-center mt-1">
+          <em className="text-xs opacity-70">
+            {msg.timestamp && new Date(msg?.timestamp).toLocaleTimeString()}
+          </em>
+          {isSender && (
+            <div className="text-xs opacity-70 ml-2">
+              {msg.status === 'sending' && '⏳'}
+              {msg.status === 'sent' && '✓'}
+              {msg.status === 'delivered' && '✓✓'}
+              {msg.status === 'read' && <span className="text-blue-400">✓✓</span>}
+              {msg.status === 'failed' && <span className="text-red-400">✗</span>}
+            </div>
+          )}
+        </div>
 
         {msg.replyTo && (
           <div
@@ -133,16 +146,34 @@ const Message = ({
               }
             `}
           >
-            {data?.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center space-x-3 px-4 py-3 cursor-pointer hover:bg-surface-700/80 transition-colors text-surface-50 text-sm border-b border-surface-700/30 last:border-b-0"
-                onClick={() => handleAction(item?.text, msg.content, msg?.messageId, msg?.receiverId, msg?.senderId)}
-              >
-                <span className="text-surface-400 flex-shrink-0">{item?.icon}</span>
-                <span className="font-medium">{item?.text}</span>
-              </div>
-            ))}
+            {data?.map((item, index) => {
+              const isActionLoading = 
+                (item?.text === 'Delete' && isDeleting) || 
+                ((item?.text === 'Pin' || item?.text === 'Unpin') && isPinning);
+              
+              return (
+                <div
+                  key={index}
+                  className={`flex items-center space-x-3 px-4 py-3 transition-colors text-surface-50 text-sm border-b border-surface-700/30 last:border-b-0 ${
+                    isActionLoading 
+                      ? 'cursor-not-allowed opacity-50' 
+                      : 'cursor-pointer hover:bg-surface-700/80'
+                  }`}
+                  onClick={() => !isActionLoading && handleAction(item?.text, msg.content, msg?.messageId, msg?.receiverId, msg?.senderId)}
+                >
+                  <span className="text-surface-400 flex-shrink-0">
+                    {isActionLoading ? (
+                      <div className="w-4 h-4 border-2 border-surface-400 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      item?.icon
+                    )}
+                  </span>
+                  <span className="font-medium">
+                    {isActionLoading ? 'Loading...' : item?.text}
+                  </span>
+                </div>
+              );
+            })}
           </motion.div>
         )}
 

@@ -12,6 +12,7 @@ const ChatInput = ({
   emitStopTyping,
   replyMessage,
   setReplyMessage,
+  isSending = false,
 }) => {
   
   const typingTimeoutRef = useRef(null);
@@ -67,9 +68,21 @@ const ChatInput = ({
 
         <button
           type="submit"
-          className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition-colors font-semibold shadow-card"
+          disabled={isSending || !message.trim()}
+          className={`px-6 py-3 rounded-lg font-semibold shadow-card transition-all duration-200 flex items-center gap-2 ${
+            isSending || !message.trim()
+              ? 'bg-surface-600 text-surface-400 cursor-not-allowed'
+              : 'bg-primary-600 text-white hover:bg-primary-500'
+          }`}
         >
-          Send
+          {isSending ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Sending...</span>
+            </>
+          ) : (
+            'Send'
+          )}
         </button>
       </div>
       <div className="absolute bottom-[100%] left-4 z-30">

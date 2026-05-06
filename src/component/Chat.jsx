@@ -3,10 +3,10 @@ import { FaReply, FaCopy, FaForward, FaThumbtack, FaTrashAlt } from "react-icons
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthProvider";
 import useAuthStore from "../store/auth";
-import { useSocket } from "../hooks/useSocket";
 import { useMessages } from "../hooks/useMessages";
 import { SOCKET_EVENTS } from "../constants/socketEvents";
 import { getUsers } from "../api/authApi";
+import socketService from "../services/socket.service";
 
 // Components
 import UserList from "./UserList";
@@ -23,7 +23,34 @@ const Chat = () => {
   const setLastChattedUserId = useAuthStore((state) => state.setLastChattedUserId);
 
   // Socket management
-  const { socket, onlineUsers, isConnected, emitEvent, onEvent, offEvent } = useSocket(userId, token);
+  const [socket, setSocket] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Initialize socket connection
+  useEffect(() => {
+    if (!userId || !token) return;
+
+    setIsConnecting(true);
+    const socketInstance = socketService.connect(userId, token);
+    setSocket(socketInstance);
+    setIsConnected(socketService.isConnected());
+
+    // Listen for online users updates
+    socketService.on(SOCKET_EVENTS.UPDATE_ONLINE_USERS, (onlineUsersIds) => {
+      console.log('👥 Received online users update:', onlineUsersIds);
+      setOnlineUsers(onlineUsersIds);
+    });
+
+    // Set connecting to false after a short delay
+    setTimeout(() => {
+      setIsConnecting(false);
+    }, 1000);
+
+    return () => {
+      socketService.off(SOCKET_EVENTS.UPDATE_ONLINE_USERS);
+    };
+  }, [userId, token]);
 
   // Message management
   const {
@@ -38,7 +65,12 @@ const Chat = () => {
     unpinMessage,
     fetchPinnedMessages,
     forwardMessage: forwardMessageHook,
-  } = useMessages(userId, socket);
+    // Loading states
+    isLoading,
+    isSending,
+    isDeleting,
+    isPinning,
+  } = useMessages(userId, socketService);
 
   // UI State
   const [message, setMessage] = useState("");
@@ -48,6 +80,7 @@ const Chat = () => {
   const [openToggle, setOpenToggle] = useState(false);
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [replyMessage, setReplyMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
@@ -57,6 +90,10 @@ const Chat = () => {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [accountOwner, setAccountOwner] = useState(false);
   const [image, setImage] = useState(null);
+  
+  // Loading states
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(true);
 
   // Message actions data
   const messageActions = [
@@ -74,7 +111,7 @@ const Chat = () => {
 
     // Get all users
     const getAllUsers = () => {
-      emitEvent(SOCKET_EVENTS.GET_USERS, { token });
+      socketService.emit(SOCKET_EVENTS.GET_USERS, { token });
     };
 
     // Listen for users
@@ -88,6 +125,7 @@ const Chat = () => {
           online: onlineUsers.includes(user._id),
         }));
         setUsers(updatedUsers);
+        setIsLoadingUsers(false);
       }
     };
 
@@ -103,16 +141,57 @@ const Chat = () => {
     // Listen for received messages
     const handleReceiveMessage = (msg) => {
       setMessages((prevMessages) => {
-        const exists = prevMessages.some(message => message.messageId === msg.messageId);
-        if (exists) return prevMessages;
-        return [...prevMessages, msg];
+        // Remove any temporary messages with the same content and sender
+        const withoutTemp = prevMessages.filter(message => 
+          !(message.messageId.startsWith('temp-') && 
+            message.content === msg.content && 
+            message.senderId === msg.senderId)
+        );
+        
+        // Check if this message already exists (avoid duplicates)
+        const exists = withoutTemp.some(message => message.messageId === msg.messageId);
+        if (exists) {
+          return withoutTemp;
+        }
+        
+        console.log('✅ Adding new message to state:', msg.messageId);
+        return [...withoutTemp, msg];
+      });
+    };
+
+    // Listen for message deletions
+    const handleMessageDeleted = ({ messageId }) => {
+      setMessages((prevMessages) => {
+        const filtered = prevMessages.filter(message => message.messageId !== messageId);
+        console.log('🗑️ Removed message from state:', messageId);
+        return filtered;
       });
     };
 
     // Set up listeners
-    onEvent(SOCKET_EVENTS.GET_USERS, handleGetUsers);
-    onEvent(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
-    onEvent(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
+    socketService.on(SOCKET_EVENTS.GET_USERS, handleGetUsers);
+    socketService.on(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
+    socketService.on(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
+    
+    // Listen for message deletions (backend uses 'messageDeleted')
+    socketService.on('messageDeleted', handleMessageDeleted);
+    
+    // Also listen for the message being echoed back (common in chat systems)
+    socketService.on('chat message', handleReceiveMessage);
+    
+    // Debug: Listen for all possible online user events
+    socketService.on('onlineUsers', (data) => {
+      console.log('👥 Received onlineUsers event:', data);
+      setOnlineUsers(data);
+    });
+    
+    socketService.on('userOnline', (data) => {
+      console.log('👥 Received userOnline event:', data);
+    });
+    
+    socketService.on('userOffline', (data) => {
+      console.log('👥 Received userOffline event:', data);
+    });
 
     // Get users on connect
     getAllUsers();
@@ -143,6 +222,9 @@ const Chat = () => {
             setUsers(updatedUsers);
           }
         } catch (error) {
+          console.error("Failed to fetch users:", error);
+        } finally {
+          setIsLoadingUsers(false);
         }
       }
     }, 3000);
@@ -151,19 +233,94 @@ const Chat = () => {
     const lastChattedUserId = getLastChattedUserId();
     if (lastChattedUserId) {
       setReceiverId(lastChattedUserId);
-      // Remove fetchMessages call to prevent infinite loop
       
       // Find and set selected user
-      emitEvent(SOCKET_EVENTS.GET_USERS, { token });
+      socketService.emit(SOCKET_EVENTS.GET_USERS, { token });
     }
 
     return () => {
       clearTimeout(fallbackTimer);
-      offEvent(SOCKET_EVENTS.GET_USERS, handleGetUsers);
-      offEvent(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
-      offEvent(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
+      socketService.off(SOCKET_EVENTS.GET_USERS, handleGetUsers);
+      socketService.off(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
+      socketService.off(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
+      socketService.off('messageDeleted', handleMessageDeleted);
+      socketService.off('chat message', handleReceiveMessage);
+      socketService.off('onlineUsers');
+      socketService.off('userOnline');
+      socketService.off('userOffline');
     };
-  }, [socket, onEvent, offEvent, emitEvent, token, userId, onlineUsers]);
+  }, [socket, token, userId, onlineUsers, users.length, getLastChattedUserId]);
+
+  // Update users online status when onlineUsers changes
+  useEffect(() => {
+    if (users.length > 0 && onlineUsers.length >= 0) {
+      console.log('👥 Updating users online status. Online users:', onlineUsers);
+      setUsers(prevUsers => 
+        prevUsers.map(user => ({
+          ...user,
+          online: onlineUsers.includes(user._id)
+        }))
+      );
+    }
+  }, [onlineUsers]);
+
+  // Monitor connection status
+  useEffect(() => {
+    const checkConnection = setInterval(() => {
+      if (socketService) {
+        const status = socketService.getConnectionStatus();
+        setConnectionStatus(status);
+        setIsConnected(socketService.isConnected());
+      }
+    }, 2000);
+
+    return () => clearInterval(checkConnection);
+  }, []);
+
+  // Listen for message status updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessageStatusUpdate = (update) => {
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.messageId === update.messageId 
+            ? { ...msg, status: update.status }
+            : msg
+        )
+      );
+    };
+
+    const handleReceiveMessage = (message) => {
+      setMessages((prevMessages) => {
+        // Remove any temporary messages with the same content and sender
+        const withoutTemp = prevMessages.filter(msg => 
+          !(msg.messageId.startsWith('temp-') && 
+            msg.content === message.content && 
+            msg.senderId === message.senderId)
+        );
+        
+        // Check if this message already exists (avoid duplicates)
+        const exists = withoutTemp.some(msg => msg.messageId === message.messageId);
+        if (exists) return withoutTemp;
+        
+        // Auto-mark as read when received (optional)
+        if (socketService.markMessageAsRead) {
+          socketService.markMessageAsRead(message.messageId);
+        }
+        
+        return [...withoutTemp, { ...message, status: 'delivered' }];
+      });
+    };
+
+    socketService.on('messageStatusUpdate', handleMessageStatusUpdate);
+    socketService.on('receiveMessage', handleReceiveMessage);
+
+    return () => {
+      socketService.off('messageStatusUpdate', handleMessageStatusUpdate);
+      socketService.off('receiveMessage', handleReceiveMessage);
+    };
+  }, [socket, setMessages]);
 
   // Typing indicators
   useEffect(() => {
@@ -175,7 +332,7 @@ const Chat = () => {
         setTypingUser(senderId);
       }
     };
-    // you log in, selects segun, hes the selected user when hes sending msg i see it as typing so hes also the sender
+
     const handleStopTypingEvent = ({ senderId, receiverId }) => {
       if (senderId === selectedUser._id && receiverId === userId) {
         setIsTyping(false);
@@ -183,12 +340,12 @@ const Chat = () => {
       }
     };
 
-    onEvent(SOCKET_EVENTS.TYPING, handleTypingEvent);
-    onEvent(SOCKET_EVENTS.STOP_TYPING, handleStopTypingEvent);
+    socketService.on(SOCKET_EVENTS.TYPING, handleTypingEvent);
+    socketService.on(SOCKET_EVENTS.STOP_TYPING, handleStopTypingEvent);
 
     return () => {
-      offEvent(SOCKET_EVENTS.TYPING, handleTypingEvent);
-      offEvent(SOCKET_EVENTS.STOP_TYPING, handleStopTypingEvent);
+      socketService.off(SOCKET_EVENTS.TYPING, handleTypingEvent);
+      socketService.off(SOCKET_EVENTS.STOP_TYPING, handleStopTypingEvent);
     };
   }, [socket, userId, selectedUser?._id]);
 
@@ -203,7 +360,7 @@ const Chat = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (sendMessage(message, receiverId, replyMessage)) {
+    if (await sendMessage(message, receiverId, replyMessage)) {
       setMessage("");
       setReplyMessage("");
       setShowEmojiPicker(false);
@@ -231,18 +388,6 @@ const Chat = () => {
   };
 
   const handleAction = (action, messageContent, messageId, receiverId, senderId) => {
-    // Extract IDs from objects if they are populated
-    const extractId = (userObj) => {
-      if (typeof userObj === 'string') return userObj;
-      if (typeof userObj === 'object' && userObj) {
-        return userObj._id || userObj.id;
-      }
-      return null;
-    };
-    
-    const receiverIdStr = extractId(receiverId);
-    const senderIdStr = extractId(senderId);
-    
     switch (action) {
       case "Copy":
         handleCopy(messageContent);
@@ -257,11 +402,9 @@ const Chat = () => {
         handleForwardMessage(messageId, users);
         break;
       case "Pin":
-        // For pinning, use current user as sender and the other user as receiver
         handlePinnedMessage(messageId, selectedUser?._id, userId);
         break;
       case "Unpin":
-        // For unpinning, use current user as sender and the other user as receiver
         handleUnPinnedMessage(messageId, selectedUser?._id, userId);
         break;
     }
@@ -348,20 +491,31 @@ const Chat = () => {
   };
 
   const emitTyping = () => {
-    if (socket && isConnected) {
-      emitEvent(SOCKET_EVENTS.TYPING, { senderId: userId, receiverId });
+    if (socketService && isConnected) {
+      socketService.startTyping(receiverId);
     }
   };
 
   const emitStopTyping = () => {
-    if (socket && isConnected) {
-      emitEvent(SOCKET_EVENTS.STOP_TYPING, { senderId: userId, receiverId });
+    if (socketService && isConnected) {
+      socketService.stopTyping(receiverId);
     }
   };
 
   return (
     <div className="background min-h-screen">
       <Toaster position="top-center" />
+      
+      {/* Initial Connection Loading */}
+      {isConnecting && (
+        <div className="fixed inset-0 bg-surface-900/95 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-surface-300 text-lg font-semibold">Connecting to chat...</p>
+          </div>
+        </div>
+      )}
+      
       <div className="flex h-screen">
         {/* User List - Responsive Sidebar */}
         <div className={`
@@ -376,6 +530,7 @@ const Chat = () => {
             handleUserClick={handleUserClick}
             accountOwner={accountOwner}
             image={image}
+            isLoading={isLoadingUsers}
           />
         </div>
 
@@ -397,6 +552,20 @@ const Chat = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
+
+              {/* Connection Status Indicator */}
+              <div className="absolute top-4 right-4 z-20">
+                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  connectionStatus === 'connected' 
+                    ? 'bg-green-500/20 text-green-400' 
+                    : connectionStatus === 'reconnecting'
+                    ? 'bg-yellow-500/20 text-yellow-400'
+                    : 'bg-red-500/20 text-red-400'
+                }`}>
+                  {connectionStatus === 'connected' ? '🟢 Online' : 
+                   connectionStatus === 'reconnecting' ? '🟡 Reconnecting' : '🔴 Offline'}
+                </div>
+              </div>
 
               {/* Chat Header */}
               <div className="flex-shrink-0 z-10">
@@ -428,30 +597,41 @@ const Chat = () => {
               {/* Messages Container */}
               <div className="flex-1 relative overflow-hidden">
                 <div className="absolute inset-0 px-3 sm:px-4 lg:px-6 py-4 overflow-y-auto">
-                  <MessageList
-                    messages={messages}
-                    userId={userId}
-                    selectedUser={selectedUser}
-                    messageRefs={messageRefs}
-                    openToggle={openToggle}
-                    setOpenToggle={setOpenToggle}
-                    selectedMsg={selectedMsg}
-                    handleToggle={handleToggle}
-                    data={messageActions}
-                    handleAction={handleAction}
-                    openForwardToggle={openForwardToggle}
-                    selectedToggle={selectedToggle}
-                    forwardTo={forwardTo}
-                    handleForwardTo={handleForwardTo}
-                    handleForwardClick={handleForwardClick}
-                    forwardMessage={forwardMessage}
-                    setOpenForwardToggle={setOpenForwardToggle}
-                    users={users}
-                    scrollToMessage={scrollToMessage}
-                    filteredUsers={filteredUsers}
-                    setFilteredUsers={setFilteredUsers}
-                    setForwardTo={setForwardTo}
-                  />
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-surface-400 text-sm">Loading messages...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <MessageList
+                      messages={messages}
+                      userId={userId}
+                      selectedUser={selectedUser}
+                      messageRefs={messageRefs}
+                      openToggle={openToggle}
+                      setOpenToggle={setOpenToggle}
+                      selectedMsg={selectedMsg}
+                      handleToggle={handleToggle}
+                      data={messageActions}
+                      handleAction={handleAction}
+                      openForwardToggle={openForwardToggle}
+                      selectedToggle={selectedToggle}
+                      forwardTo={forwardTo}
+                      handleForwardTo={handleForwardTo}
+                      handleForwardClick={handleForwardClick}
+                      forwardMessage={forwardMessage}
+                      setOpenForwardToggle={setOpenForwardToggle}
+                      users={users}
+                      scrollToMessage={scrollToMessage}
+                      filteredUsers={filteredUsers}
+                      setFilteredUsers={setFilteredUsers}
+                      setForwardTo={setForwardTo}
+                      isDeleting={isDeleting}
+                      isPinning={isPinning}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -469,6 +649,7 @@ const Chat = () => {
                     emitStopTyping={emitStopTyping}
                     replyMessage={replyMessage}
                     setReplyMessage={setReplyMessage}
+                    isSending={isSending}
                   />
                 </div>
               </div>

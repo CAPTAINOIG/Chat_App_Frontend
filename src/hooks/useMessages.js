@@ -13,10 +13,19 @@ import {
 export const useMessages = (userId, socket) => {
   const [messages, setMessages] = useState([]);
   const [pinnedMessage, setPinnedMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isPinning, setIsPinning] = useState(false);
+  const [deletedMessageIds, setDeletedMessageIds] = useState(new Set());
 
   // Fetch messages for a specific user
   const fetchMessages = useCallback(async (senderId) => {
     setMessages([]);
+    setIsLoading(true);
+    // Clear deleted messages cache when fetching new conversation
+    setDeletedMessageIds(new Set());
+    
     try {
       const response = await getMessage(userId, senderId);
       let messages = [];
@@ -29,63 +38,121 @@ export const useMessages = (userId, socket) => {
       } else if (Array.isArray(response)) {
         messages = response;
       }
-      setMessages(messages);
+      
+      // Filter out deleted messages (both by isDeleted flag and local cache)
+      const activeMessages = messages.filter(msg => 
+        !msg.isDeleted && !deletedMessageIds.has(msg.messageId)
+      );
+      console.log('📥 Fetched messages:', messages.length, 'Active messages:', activeMessages.length);
+      
+      setMessages(activeMessages);
     } catch (error) {
+      console.error("Failed to fetch messages:", error);
       toast.error("Failed to fetch messages");
+    } finally {
+      setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, deletedMessageIds]);
 
-  const sendMessage = useCallback((content, receiverId, replyMessage = "") => {
-    if (!content.trim() || !receiverId || !socket) return false;
-
+  const sendMessage = useCallback(async (content, receiverId, replyMessage = "") => {
+    if (!content.trim() || !receiverId || !socket) {
+      return false;
+    }
+    
+    setIsSending(true);
+    // Generate a temporary message ID for immediate display
+    const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     try {
-      const messageId = uuidv4();
-      const payload = {
-        messageId,
+      const tempMessage = {
+        messageId: tempMessageId,
         senderId: userId,
         receiverId,
         content: content.trim(),
         replyTo: replyMessage,
         timestamp: new Date(),
+        status: 'sending'
       };
-
-      socket.emit("chat message", payload);
-
-      setMessages((prevMessages) => {
-        const exists = prevMessages.some(msg => msg.messageId === messageId);
-        if (exists) return prevMessages;
-        return [...prevMessages, payload];
-      });
-      
+      setMessages((prevMessages) => [...prevMessages, tempMessage]);
+      // Send via improved socket service
+      const result = await socket.sendMessage(receiverId, content.trim(), replyMessage);
+      // Update the temporary message with the real message ID
+      setMessages((prevMessages) => 
+        prevMessages.map(msg => 
+          msg.messageId === tempMessageId 
+            ? { ...msg, messageId: result.messageId, status: 'sent' }
+            : msg
+        )
+      );
       return true;
     } catch (error) {
-      console.error("Error sending message:", error);
+      // Remove the failed message from local state
+      setMessages((prevMessages) => 
+        prevMessages.filter(msg => msg.messageId !== tempMessageId)
+      );
       toast.error("Failed to send message");
       return false;
+    } finally {
+      setIsSending(false);
     }
-  }, [userId, socket]);
+  }, [userId, socket, setMessages]);
 
   // Delete a message
   const deleteMessage = useCallback(async (messageId) => {
+    console.log('🗑️ Delete message called with ID:', messageId);
     if (!messageId) {
       toast.error("Invalid message id");
       return false;
     }
 
+    setIsDeleting(true);
     try {
-      const response = await deleteMessageApi(messageId);
-      toast.success(response.message || "Message deleted successfully");
-      setMessages(prev => prev.filter(item => item.messageId !== messageId));
+      // Try API deletion first (for database persistence)
+      try {
+        const response = await deleteMessageApi(messageId);
+        // Also emit socket event to notify other users in real-time
+        if (socket && socket.deleteMessage) {
+          await socket.deleteMessage(messageId);
+        }
+        toast.success(response.message || "Message deleted successfully");
+      } catch (apiError) {
+        // If API fails, try socket method (your backend pattern)
+        if (socket && socket.deleteMessage) {
+          await socket.deleteMessage(messageId);
+          toast.success("Message deleted successfully");
+        } else {
+          throw new Error("No deletion method available");
+        }
+      }
+      // Add to deleted messages cache
+      setDeletedMessageIds(prev => new Set([...prev, messageId]));
+      // Remove from local state immediately
+      setMessages(prev => {
+        const filtered = prev.filter(item => item.messageId !== messageId);
+        return filtered;
+      });
       return true;
     } catch (error) {
-      console.error("Delete message error:", error);
-      toast.error(handleApiError(error, "Failed to delete message"));
+      toast.error("Failed to delete message: " + (error.message || "Unknown error"));
       return false;
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [socket, setMessages]);
+
+    // Fetch pinned messages
+  const fetchPinnedMessages = useCallback(async (senderId, receiverId) => {
+    try {
+      const response = await getPinnedMessages(senderId, receiverId);
+      if (response) {
+        setPinnedMessage(response.pinMessage);
+      }
+    } catch (error) {
     }
   }, []);
 
   // Pin a message
   const pinMessage = useCallback(async (messageId, receiverId, senderId) => {
+    setIsPinning(true);
     try {
       const response = await pinMessageApi(messageId, senderId, receiverId);
       if (response.status === "success" || response.success) {
@@ -99,11 +166,14 @@ export const useMessages = (userId, socket) => {
     } catch (error) {
       toast.error(handleApiError(error));
       return false;
+    } finally {
+      setIsPinning(false);
     }
-  }, []);
+  }, [fetchPinnedMessages]);
 
   // Unpin a message
   const unpinMessage = useCallback(async (messageId, receiverId, senderId) => {
+    setIsPinning(true);
     try {
       const response = await unpinMessageApi(messageId, senderId, receiverId);
       if (response.status === "success" || response.success) {
@@ -117,17 +187,8 @@ export const useMessages = (userId, socket) => {
     } catch (error) {
       toast.error(handleApiError(error));
       return false;
-    }
-  }, []);
-
-  // Fetch pinned messages
-  const fetchPinnedMessages = useCallback(async (senderId, receiverId) => {
-    try {
-      const response = await getPinnedMessages(senderId, receiverId);
-      if (response) {
-        setPinnedMessage(response.pinMessage);
-      }
-    } catch (error) {
+    } finally {
+      setIsPinning(false);
     }
   }, []);
 
@@ -177,5 +238,10 @@ export const useMessages = (userId, socket) => {
     unpinMessage,
     fetchPinnedMessages,
     forwardMessage,
+    // Loading states
+    isLoading,
+    isSending,
+    isDeleting,
+    isPinning,
   };
 };

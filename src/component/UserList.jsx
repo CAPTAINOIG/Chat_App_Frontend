@@ -28,7 +28,7 @@ import {
   fileToBase64
 } from "../api/authApi";
 
-const UserList = ({ users, handleUserClick, accountOwner }) => {
+const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) => {
   const { userId, logout } = useAuth();
   const [image, setImage] = useState(null);
   const [openToggle, setOpenToggle] = useState(false);
@@ -128,7 +128,6 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         throw new Error("Unexpected response from server");
       }
     } catch (error) {
-      console.error("Profile picture upload error:", error);
       toast.error(handleApiError(error, "Failed to upload image"));
       setLoading(false);
     }
@@ -147,7 +146,6 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         setLoading(false);
       }
     } catch (error) {
-      console.error("Failed to fetch profile picture:", error);
       if (error.response?.status !== 404) {
         toast.error(handleApiError(error, "Failed to load profile picture"));
       }
@@ -207,43 +205,52 @@ const UserList = ({ users, handleUserClick, accountOwner }) => {
         Conversations
       </h2>
       <div className="space-y-2 flex-1">
-        {users.length > 0 ? (
-          users.map((item, i) => (
-            <div
-              key={i}
-              className="p-3 cursor-pointer hover:bg-primary-600 hover:text-white text-surface-200 rounded-lg bg-surface-900 border border-surface-700 transition-all"
-              onClick={() => handleUserClick(item)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="relative flex-shrink-0">
-                  {item?.profilePicture ? (
-                    <img
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-primary-500 object-cover"
-                      src={item.profilePicture}
-                      alt="Profile"
-                    />
-                  ) : (
-                    <img
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-surface-600 object-cover"
-                      src={user}
-                      alt="Profile"
-                    />
-                  )}
-                  {item.online && (
-                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-accent-400 border-2 border-surface-900 rounded-full"></span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium text-sm sm:text-base truncate block">
-                    {item?.username || "Unknown User"}
-                  </span>
-                  {item.online && (
-                    <span className="text-xs text-accent-400">Online</span>
-                  )}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-surface-400 text-sm">Loading users...</p>
+            </div>
+          </div>
+        ) : users.length > 0 ? (
+          users.map((item, i) => {
+            return (
+              <div
+                key={i}
+                className="p-3 cursor-pointer hover:bg-primary-600 hover:text-white text-surface-200 rounded-lg bg-surface-900 border border-surface-700 transition-all"
+                onClick={() => handleUserClick(item)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-shrink-0">
+                    {item?.profilePicture ? (
+                      <img
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-primary-500 object-cover"
+                        src={item.profilePicture}
+                        alt="Profile"
+                      />
+                    ) : (
+                      <img
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-surface-600 object-cover"
+                        src={user}
+                        alt="Profile"
+                      />
+                    )}
+                    {item.online && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-accent-400 border-2 border-surface-900 rounded-full"></span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium text-sm sm:text-base truncate block">
+                      {item?.username || "Unknown User"}
+                    </span>
+                    {item.online && (
+                      <span className="text-xs text-accent-400">Online</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="flex items-center justify-center py-8">
             <p className="text-center text-surface-500 text-sm">No users available</p>

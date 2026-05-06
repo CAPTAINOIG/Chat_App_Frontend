@@ -1,6 +1,6 @@
 /**
  * Socket.io Service for Frontend
- * Matches the backend Socket.IO implementation
+ * Improved version with better reliability and message status
  */
 import io from 'socket.io-client';
 
@@ -11,6 +11,8 @@ class SocketService {
     this.socket = null;
     this.userId = null;
     this.listeners = new Map();
+    this.messageQueue = [];
+    this.isReconnecting = false;
   }
 
   connect(userId, token) {
@@ -24,6 +26,9 @@ class SocketService {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
+      auth: {
+        token: token
+      }
     });
 
     this.setupDefaultListeners(token);
@@ -32,13 +37,14 @@ class SocketService {
 
   setupDefaultListeners(token) {
     this.socket.on('connect', () => {
-      console.log('✅ Socket connected:', this.socket.id);
       this.socket.emit('user-online', this.userId);
       this.socket.emit('getUsers', { token });
+      
+      // Send queued messages
+      this.flushMessageQueue();
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
     });
 
     this.socket.on('connect_error', (error) => {
@@ -46,29 +52,48 @@ class SocketService {
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
       this.socket.emit('user-online', this.userId);
       this.socket.emit('getUsers', { token });
+      this.flushMessageQueue();
     });
   }
 
-  sendMessage(receiverId, content, replyTo = null) {
-    if (!this.socket?.connected) {
-      throw new Error('Socket not connected');
+  async sendMessage(receiverId, content, replyTo = null) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket?.connected) {
+        // Queue message if offline
+        const queuedMessage = { receiverId, content, replyTo, resolve, reject };
+        this.messageQueue.push(queuedMessage);
+        reject(new Error('Socket not connected - message queued'));
+        return;
+      }
+
+      const messageId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      const payload = {
+        messageId,
+        senderId: this.userId,
+        receiverId,
+        content,
+        replyTo,
+        timestamp: new Date(),
+      };
+
+      // Send message without waiting for acknowledgment
+      // The backend will send the message back via 'receiveMessage' event
+      this.socket.emit('chat message', payload);
+      
+      // Resolve immediately since we're not waiting for ack
+      resolve({ messageId, payload, status: 'sent' });
+    });
+  }
+
+  flushMessageQueue() {
+    while (this.messageQueue.length > 0) {
+      const queuedMessage = this.messageQueue.shift();
+      this.sendMessage(queuedMessage.receiverId, queuedMessage.content, queuedMessage.replyTo)
+        .then(queuedMessage.resolve)
+        .catch(queuedMessage.reject);
     }
-
-    const messageId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const payload = {
-      messageId,
-      senderId: this.userId,
-      receiverId,
-      content,
-      replyTo,
-      timestamp: new Date(),
-    };
-
-    this.socket.emit('chat message', payload);
-    return { messageId, payload };
   }
 
   startTyping(receiverId) {
@@ -87,6 +112,25 @@ class SocketService {
         receiverId,
       });
     }
+  }
+
+  markMessageAsRead(messageId) {
+    if (this.socket?.connected) {
+      this.socket.emit('markAsRead', { messageId });
+    }
+  }
+
+  deleteMessage(messageId) {
+    return new Promise((resolve, reject) => {
+      if (!this.socket?.connected) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+      // Emit deleteMessage event (matches your backend pattern)
+      this.socket.emit('deleteMessage', { messageId });
+      // Resolve immediately since backend will handle deletion and broadcast messageDeleted
+      resolve({ success: true });
+    });
   }
 
   on(event, callback) {
@@ -135,8 +179,11 @@ class SocketService {
     return this.socket?.connected || false;
   }
 
-  getOnlineUsers() {
-    return this.onlineUsers || [];
+  getConnectionStatus() {
+    if (!this.socket) return 'disconnected';
+    if (this.socket.connected) return 'connected';
+    if (this.isReconnecting) return 'reconnecting';
+    return 'disconnected';
   }
 }
 
