@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FaReply, FaCopy, FaForward, FaThumbtack, FaTrashAlt } from "react-icons/fa";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthProvider";
@@ -13,12 +13,11 @@ import UserList from "./UserList";
 import ChatInput from "./ChatInput";
 import MessageList from "./MessageList";
 import ChatHeader from "./ChatHeader";
-import PinnedMessages from "./PinnedMessages";
 import TypingIndicator from "./TypingIndicator";
 
 const Chat = () => {
   const messageRefs = useRef({});
-  const { userId, username, token } = useAuth();
+  const { userId, token } = useAuth();
   const getLastChattedUserId = useAuthStore((state) => state.getLastChattedUserId);
   const setLastChattedUserId = useAuthStore((state) => state.setLastChattedUserId);
 
@@ -38,7 +37,6 @@ const Chat = () => {
 
     // Listen for online users updates
     socketService.on(SOCKET_EVENTS.UPDATE_ONLINE_USERS, (onlineUsersIds) => {
-      console.log('👥 Received online users update:', onlineUsersIds);
       setOnlineUsers(onlineUsersIds);
     });
 
@@ -63,7 +61,6 @@ const Chat = () => {
     deleteMessage,
     pinMessage,
     unpinMessage,
-    fetchPinnedMessages,
     forwardMessage: forwardMessageHook,
     // Loading states
     isLoading,
@@ -80,7 +77,6 @@ const Chat = () => {
   const [openToggle, setOpenToggle] = useState(false);
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [replyMessage, setReplyMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
@@ -269,7 +265,6 @@ const Chat = () => {
     const checkConnection = setInterval(() => {
       if (socketService) {
         const status = socketService.getConnectionStatus();
-        setConnectionStatus(status);
         setIsConnected(socketService.isConnected());
       }
     }, 2000);
@@ -387,7 +382,7 @@ const Chat = () => {
     }
   };
 
-  const handleAction = (action, messageContent, messageId, receiverId, senderId) => {
+  const handleAction = (action, messageContent, messageId) => {
     switch (action) {
       case "Copy":
         handleCopy(messageContent);
@@ -433,7 +428,6 @@ const Chat = () => {
       }
       setOpenToggle(false);
     } catch (err) {
-      console.error("Failed to copy text: ", err);
       toast.error("Failed to copy message");
     }
   };
@@ -505,8 +499,6 @@ const Chat = () => {
   return (
     <div className="background min-h-screen">
       <Toaster position="top-center" />
-      
-      {/* Initial Connection Loading */}
       {isConnecting && (
         <div className="fixed inset-0 bg-surface-900/95 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -517,7 +509,6 @@ const Chat = () => {
       )}
       
       <div className="flex h-screen">
-        {/* User List - Responsive Sidebar */}
         <div className={`
           ${selectedUser ? 'hidden lg:flex' : 'flex'} 
           flex-col
@@ -552,36 +543,14 @@ const Chat = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-
-              {/* Connection Status Indicator */}
-              <div className="absolute top-4 right-4 z-20">
-                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  connectionStatus === 'connected' 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : connectionStatus === 'reconnecting'
-                    ? 'bg-yellow-500/20 text-yellow-400'
-                    : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {connectionStatus === 'connected' ? '🟢 Online' : 
-                   connectionStatus === 'reconnecting' ? '🟡 Reconnecting' : '🔴 Offline'}
-                </div>
-              </div>
-
-              {/* Chat Header */}
               <div className="flex-shrink-0 z-10">
                 <ChatHeader 
                   selectedUser={selectedUser}
                   image={image}
                   setImage={setImage}
-                />
-              </div>
-
-              {/* Pinned Messages */}
-              <div className="flex-shrink-0">
-                <PinnedMessages
                   pinnedMessage={pinnedMessage}
                   setPinnedMessage={setPinnedMessage}
-                  userId={userId}
+                  scrollToMessage={scrollToMessage}
                 />
               </div>
 

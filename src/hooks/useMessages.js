@@ -43,11 +43,8 @@ export const useMessages = (userId, socket) => {
       const activeMessages = messages.filter(msg => 
         !msg.isDeleted && !deletedMessageIds.has(msg.messageId)
       );
-      console.log('📥 Fetched messages:', messages.length, 'Active messages:', activeMessages.length);
-      
       setMessages(activeMessages);
     } catch (error) {
-      console.error("Failed to fetch messages:", error);
       toast.error("Failed to fetch messages");
     } finally {
       setIsLoading(false);
@@ -98,7 +95,6 @@ export const useMessages = (userId, socket) => {
 
   // Delete a message
   const deleteMessage = useCallback(async (messageId) => {
-    console.log('🗑️ Delete message called with ID:', messageId);
     if (!messageId) {
       toast.error("Invalid message id");
       return false;
@@ -141,12 +137,31 @@ export const useMessages = (userId, socket) => {
 
     // Fetch pinned messages
   const fetchPinnedMessages = useCallback(async (senderId, receiverId) => {
+    console.log('📌 Fetching pinned messages:', { senderId, receiverId });
     try {
       const response = await getPinnedMessages(senderId, receiverId);
+      console.log('📌 Pinned messages API response:', response);
+      
       if (response) {
-        setPinnedMessage(response.pinMessage);
+        // Try different possible response structures
+        let pinnedMessages = null;
+        if (response.pinMessage) {
+          pinnedMessages = response.pinMessage;
+        } else if (response.data?.pinMessage) {
+          pinnedMessages = response.data.pinMessage;
+        } else if (response.data?.pinnedMessages) {
+          pinnedMessages = response.data.pinnedMessages;
+        } else if (response.pinnedMessages) {
+          pinnedMessages = response.pinnedMessages;
+        }
+        
+        console.log('📌 Setting pinned messages:', pinnedMessages);
+        setPinnedMessage(pinnedMessages);
       }
     } catch (error) {
+      console.error('📌 Error fetching pinned messages:', error);
+      toast.error(handleApiError(error));
+      return false;
     }
   }, []);
 

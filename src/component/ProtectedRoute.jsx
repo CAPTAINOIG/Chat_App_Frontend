@@ -6,7 +6,6 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  // Show loading spinner while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-900">
@@ -18,12 +17,10 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // Redirect to signin if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
-  // Render protected content
   return children;
 };
 

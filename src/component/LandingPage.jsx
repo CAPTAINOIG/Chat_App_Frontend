@@ -26,7 +26,6 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-surface-900 text-surface-50 flex flex-col">
-      {/* ── Header ── */}
       <header className="px-8 py-5 flex justify-between items-center border-b border-surface-800">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -49,7 +48,6 @@ const LandingPage = () => {
         </motion.button>
       </header>
 
-      {/* ── Hero ── */}
       <section className="flex flex-col md:flex-row justify-center items-center flex-1 px-8 py-16 gap-12">
         <motion.div
           initial={{ opacity: 0, x: -50 }}
@@ -94,7 +92,6 @@ const LandingPage = () => {
         />
       </section>
 
-      {/* ── Features ── */}
       <section className="bg-surface-800 py-16 px-8">
         <div className="max-w-5xl mx-auto text-center">
           <h3 className="text-3xl font-bold mb-3 text-surface-50">
@@ -123,7 +120,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ── Footer ── */}
       <footer className="text-center py-6 bg-surface-900 border-t border-surface-800">
         <p className="text-sm text-surface-500">
           &copy; {new Date().getFullYear()} ChatterBox. All rights reserved.

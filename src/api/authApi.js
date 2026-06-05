@@ -1,9 +1,5 @@
 import axiosInstance from "../../utils/AxiosInstance";
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔗 API ENDPOINTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const API_BASE = "/api/user";
 
 const ENDPOINTS = {
@@ -29,9 +25,6 @@ const ENDPOINTS = {
   GET_UPDATE_PROFILE: `${API_BASE}/getUpdateProfile`,
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔐 AUTHENTICATION APIs
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const signUp = async (user) => {
   const response = await axiosInstance.post(ENDPOINTS.SIGNUP, user);
@@ -82,9 +75,6 @@ export const deleteMessage = async (messageId) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const pinMessage = async (messageId, senderId, receiverId) => {
-  console.log("=== PIN MESSAGE API CALL ===");
-  console.log("API Parameters:", { messageId, senderId, receiverId });
-  
   const payload = {
     messageId,
     senderId,
