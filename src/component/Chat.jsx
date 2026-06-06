@@ -14,41 +14,24 @@ import ChatInput from "./ChatInput";
 import MessageList from "./MessageList";
 import ChatHeader from "./ChatHeader";
 import TypingIndicator from "./TypingIndicator";
+import CallComponent from "./CallComponent";
 
 const Chat = () => {
   const messageRefs = useRef({});
-  const { userId, token } = useAuth();
+  const { userId, token, user } = useAuth();
+  
   const getLastChattedUserId = useAuthStore((state) => state.getLastChattedUserId);
   const setLastChattedUserId = useAuthStore((state) => state.setLastChattedUserId);
-
   // Socket management
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Initialize socket connection
   useEffect(() => {
-    if (!userId || !token) return;
-
-    setIsConnecting(true);
-    const socketInstance = socketService.connect(userId, token);
-    setSocket(socketInstance);
-    setIsConnected(socketService.isConnected());
-
-    // Listen for online users updates
-    socketService.on(SOCKET_EVENTS.UPDATE_ONLINE_USERS, (onlineUsersIds) => {
-      setOnlineUsers(onlineUsersIds);
-    });
-
-    // Set connecting to false after a short delay
-    setTimeout(() => {
-      setIsConnecting(false);
-    }, 1000);
-
-    return () => {
-      socketService.off(SOCKET_EVENTS.UPDATE_ONLINE_USERS);
-    };
-  }, [userId, token]);
+    if (user) {
+      setAccountOwner(user);
+    }
+  }, [user]);
 
   // Message management
   const {
@@ -84,7 +67,7 @@ const Chat = () => {
   const [selectedToggle, setSelectedToggle] = useState(false);
   const [forwardTo, setForwardTo] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [accountOwner, setAccountOwner] = useState(false);
+  const [accountOwner, setAccountOwner] = useState(user);
   const [image, setImage] = useState(null);
   
   // Loading states
@@ -103,22 +86,53 @@ const Chat = () => {
 
   // Initialize socket listeners
   useEffect(() => {
-    if (!socket) return;
+    if (!userId || !token) return;
+
+    // Connect socket first
+    setIsConnecting(true);
+    const socketInstance = socketService.connect(userId, token);
+    setSocket(socketInstance);
+    setIsConnected(socketService.isConnected());
+
+    // Listen for online users updates - ALL POSSIBLE EVENT NAMES!
+    const handleOnlineUsersUpdate = (onlineUsersIds) => {
+      let processedOnlineUsers = [];
+      // Handle different possible data structures
+      if (Array.isArray(onlineUsersIds)) {
+        processedOnlineUsers = onlineUsersIds.map(id => String(id));
+      } else if (onlineUsersIds && Array.isArray(onlineUsersIds.users)) {
+        processedOnlineUsers = onlineUsersIds.users.map(id => String(id));
+      } else if (onlineUsersIds && Array.isArray(onlineUsersIds.onlineUsers)) {
+        processedOnlineUsers = onlineUsersIds.onlineUsers.map(id => String(id));
+      }
+      
+      console.log('Processed online users:', processedOnlineUsers);
+      setOnlineUsers(processedOnlineUsers);
+    };
 
     // Get all users
     const getAllUsers = () => {
+      console.log('getAllUsers called - emitting GET_USERS with token:', token ? 'exists' : 'missing');
       socketService.emit(SOCKET_EVENTS.GET_USERS, { token });
     };
 
     // Listen for users
     const handleGetUsers = (data) => {
       if (data) {
-        const owner = data.users.find((user) => user._id === userId);
-        setAccountOwner(owner);
-        const filteredUsers = data.users.filter((user) => user._id !== userId);
+        const onlineUsersFromData = data.users
+          .filter(user => user.online)
+          .map(user => String(user._id || user.id));
+        if (onlineUsersFromData.length > 0) {
+          setOnlineUsers(onlineUsersFromData);
+        }
+        const owner = data.users.find((user) => String(user._id || user.id) === String(userId));
+        if (owner) {
+          setAccountOwner(owner);
+        }
+        const filteredUsers = data.users.filter((user) => String(user._id || user.id) !== String(userId));
         const updatedUsers = filteredUsers.map((user) => ({
           ...user,
-          online: onlineUsers.includes(user._id),
+          online: user.online || onlineUsers.includes(user._id || user.id),
         }));
         setUsers(updatedUsers);
         setIsLoadingUsers(false);
@@ -127,6 +141,7 @@ const Chat = () => {
 
     // Listen for new messages
     const handleNewMessage = (message) => {
+      console.log('📨 handleNewMessage received:', message);
       setMessages((prevMessages) => {
         const exists = prevMessages.some(msg => msg.messageId === message.messageId);
         if (exists) return prevMessages;
@@ -136,6 +151,7 @@ const Chat = () => {
 
     // Listen for received messages
     const handleReceiveMessage = (msg) => {
+      console.log('📨 handleReceiveMessage received:', msg);
       setMessages((prevMessages) => {
         // Remove any temporary messages with the same content and sender
         const withoutTemp = prevMessages.filter(message => 
@@ -164,7 +180,14 @@ const Chat = () => {
       });
     };
 
-    // Set up listeners
+    // Set up ALL listeners
+    // Listen to every possible event name for online users
+    socketService.on(SOCKET_EVENTS.UPDATE_ONLINE_USERS, handleOnlineUsersUpdate);
+    socketService.on('onlineUsers', handleOnlineUsersUpdate);
+    socketService.on('updateOnlineUsers', handleOnlineUsersUpdate);
+    socketService.on('online-users', handleOnlineUsersUpdate);
+    socketService.on('getUsersResponse', handleOnlineUsersUpdate);
+
     socketService.on(SOCKET_EVENTS.GET_USERS, handleGetUsers);
     socketService.on(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
     socketService.on(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
@@ -175,12 +198,6 @@ const Chat = () => {
     // Also listen for the message being echoed back (common in chat systems)
     socketService.on('chat message', handleReceiveMessage);
     
-    // Debug: Listen for all possible online user events
-    socketService.on('onlineUsers', (data) => {
-      console.log('👥 Received onlineUsers event:', data);
-      setOnlineUsers(data);
-    });
-    
     socketService.on('userOnline', (data) => {
       console.log('👥 Received userOnline event:', data);
     });
@@ -189,11 +206,18 @@ const Chat = () => {
       console.log('👥 Received userOffline event:', data);
     });
 
+    // Set connecting to false after a short delay
+    setTimeout(() => {
+      setIsConnecting(false);
+    }, 1000);
+
     // Get users on connect
     getAllUsers();
+    console.log('Requesting users via socket...');
 
     // Fallback: Try HTTP API if Socket.IO doesn't return users after 3 seconds
     const fallbackTimer = setTimeout(async () => {
+      console.log('Socket users fetch timeout, trying HTTP API fallback...');
       if (users.length === 0) {
         try {
           const response = await getUsers();
@@ -207,13 +231,26 @@ const Chat = () => {
           }
           
           if (usersData.length > 0) {
-            const owner = usersData.find((user) => (user._id || user.id) === userId);
-            setAccountOwner(owner);
+            // Extract online user IDs from the HTTP users data too
+            const onlineUsersFromFallback = usersData
+              .filter(user => user.online)
+              .map(user => String(user._id || user.id));
             
-            const filteredUsers = usersData.filter((user) => (user._id || user.id) !== userId);
+            if (onlineUsersFromFallback.length > 0) {
+              console.log('Setting online users from HTTP fallback:', onlineUsersFromFallback);
+              setOnlineUsers(onlineUsersFromFallback);
+            }
+            
+            const owner = usersData.find((user) => String(user._id || user.id) === String(userId));
+            console.log('Found account owner from HTTP API:', owner);
+            if (owner) {
+              setAccountOwner(owner);
+            }
+            
+            const filteredUsers = usersData.filter((user) => String(user._id || user.id) !== String(userId));
             const updatedUsers = filteredUsers.map((user) => ({
               ...user,
-              online: onlineUsers.includes(user._id || user.id),
+              online: user.online || onlineUsers.includes(user._id || user.id),
             }));
             setUsers(updatedUsers);
           }
@@ -241,24 +278,48 @@ const Chat = () => {
       socketService.off(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
       socketService.off('messageDeleted', handleMessageDeleted);
       socketService.off('chat message', handleReceiveMessage);
-      socketService.off('onlineUsers');
+      
+      // Clean up all the new online user listeners
+      socketService.off(SOCKET_EVENTS.UPDATE_ONLINE_USERS, handleOnlineUsersUpdate);
+      socketService.off('onlineUsers', handleOnlineUsersUpdate);
+      socketService.off('updateOnlineUsers', handleOnlineUsersUpdate);
+      socketService.off('online-users', handleOnlineUsersUpdate);
+      socketService.off('getUsersResponse', handleOnlineUsersUpdate);
+      
       socketService.off('userOnline');
       socketService.off('userOffline');
     };
-  }, [socket, token, userId, onlineUsers, users.length, getLastChattedUserId]);
+  }, [token, userId, onlineUsers, users.length, getLastChattedUserId]);
 
   // Update users online status when onlineUsers changes
   useEffect(() => {
     if (users.length > 0 && onlineUsers.length >= 0) {
       console.log('👥 Updating users online status. Online users:', onlineUsers);
+      console.log('Current users:', users);
       setUsers(prevUsers => 
-        prevUsers.map(user => ({
-          ...user,
-          online: onlineUsers.includes(user._id)
-        }))
+        prevUsers.map(user => {
+          const userIdToCheck = String(user._id || user.id);
+          const isOnline = onlineUsers.some(onlineId => String(onlineId) === userIdToCheck);
+          console.log(`User ${user.username} (${userIdToCheck}) is ${isOnline ? 'online' : 'offline'}`);
+          return {
+            ...user,
+            online: isOnline
+          };
+        })
       );
     }
-  }, [onlineUsers]);
+  }, [onlineUsers, users.length]);
+
+  // Update selectedUser's online status when users or onlineUsers changes
+  useEffect(() => {
+    if (selectedUser && users.length > 0) {
+      const updatedUser = users.find(u => String(u._id || u.id) === String(selectedUser._id || selectedUser.id));
+      if (updatedUser && updatedUser.online !== selectedUser.online) {
+        console.log('Updating selectedUser online status to:', updatedUser.online);
+        setSelectedUser(updatedUser);
+      }
+    }
+  }, [users, selectedUser, setSelectedUser]);
 
   // Monitor connection status
   useEffect(() => {
@@ -499,6 +560,12 @@ const Chat = () => {
   return (
     <div className="background min-h-screen">
       <Toaster position="top-center" />
+      
+      {/* Call Component - Overlay for voice/video calls */}
+      <CallComponent 
+        currentUserId={userId} 
+        username={localStorage.getItem('username') || 'User'}
+      />
       {isConnecting && (
         <div className="fixed inset-0 bg-surface-900/95 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -548,6 +615,7 @@ const Chat = () => {
                   selectedUser={selectedUser}
                   image={image}
                   setImage={setImage}
+                  accountOwner={accountOwner}
                   pinnedMessage={pinnedMessage}
                   setPinnedMessage={setPinnedMessage}
                   scrollToMessage={scrollToMessage}

@@ -35,14 +35,32 @@ const Message = ({
       return msg.senderId;
     }
     if (typeof msg.senderId === 'object' && msg.senderId) {
-      return msg.senderId._id || msg.senderId.id;
+      const id = msg.senderId._id || msg.senderId.id;
+      return id;
     }
-    return msg.sender || msg.from || null;
+    if (msg.sender) {
+      if (typeof msg.sender === 'string') {
+        return msg.sender;
+      }
+      if (typeof msg.sender === 'object' && msg.sender) {
+        const id = msg.sender._id || msg.sender.id;
+        return id;
+      }
+    }
+    if (msg.from) {
+      if (typeof msg.from === 'string') {
+        return msg.from;
+      }
+      if (typeof msg.from === 'object' && msg.from) {
+        const id = msg.from._id || msg.from.id;
+        return id;
+      }
+    }
+    return null;
   };
 
   const messageSenderId = getSenderId(msg);
   const isSender = String(messageSenderId) === String(userId);
-
   // Click outside to close menu
   useEffect(() => {
     const handleClickOutside = (event) => {

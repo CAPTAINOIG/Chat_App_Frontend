@@ -2,6 +2,9 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* Import call styles */
+@import './styles/call.css';
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Mirza:wght@400;500;600;700&display=swap');
 
 /* ── Global ── */
