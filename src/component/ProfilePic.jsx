@@ -12,6 +12,7 @@ import {
   IoMdInformationCircleOutline,
   IoMdNotificationsOutline,
 } from "react-icons/io";
+import { Drawer } from "antd";
 import { GrStorage } from "react-icons/gr";
 import { TbTableShortcut } from "react-icons/tb";
 import { Toaster, toast } from "sonner";
@@ -28,7 +29,7 @@ import {
 const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
   const { userId } = useAuth();
   const [openToggle, setOpenToggle] = useState(false);
-  const [otherUsersToggle, setotherUsersToggle] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [viewImage, setViewImage] = useState(false);
 
@@ -90,11 +91,10 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
   }, []);
 
   const handleAction = (selectedUser) => {
-    // Check if the selected user is the account owner by comparing IDs
     if (accountOwner && selectedUser?._id === accountOwner._id) {
       setOpenToggle(!openToggle);
     } else {
-      setotherUsersToggle(!otherUsersToggle);
+      setDrawerOpen(!drawerOpen);
     }
   };
 
@@ -199,81 +199,82 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
         </motion.div>
       )}
 
-      {otherUsersToggle && (
-        <motion.div
-          ref={dropdownRef}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
-          className="absolute top-16 left-0 z-50 w-96 max-h-[80vh] overflow-y-auto bg-surface-800 shadow-2xl rounded-xl border border-surface-700"
-        >
-          <div className="grid grid-cols-2 gap-4 p-4">
-            <div className="bg-surface-900 rounded-lg p-3">
-              {data?.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center space-x-3 p-3 cursor-pointer hover:bg-primary-600 rounded-lg transition-colors text-surface-200 mb-2"
-                >
-                  {item?.icon}
-                  <span className="text-sm font-medium">{item?.text}</span>
+      <Drawer
+        title={selectedUser?.username}
+        placement="left"
+        onClose={() => setDrawerOpen(false)}
+        open={drawerOpen}
+        width={400}
+        styles={{
+          body: { padding: 0, backgroundColor: 'rgb(30 41 59)' },
+          header: { backgroundColor: 'rgb(30 41 59)', color: 'white', borderBottom: '1px solid rgb(51 65 85)' }
+        }}
+      >
+        <div className="grid grid-cols-2 gap-4 p-4">
+          <div className="bg-surface-900 rounded-lg p-3">
+            {data?.map((item, index) => (
+              <div
+                key={index}
+                className="flex items-center space-x-3 p-3 cursor-pointer hover:bg-primary-600 rounded-lg transition-colors text-surface-200 mb-2"
+              >
+                {item?.icon}
+                <span className="text-sm font-medium">{item?.text}</span>
+              </div>
+            ))}
+          </div>
+          <div className="p-3 relative">
+            <div onClick={handleViewImage} className="cursor-pointer">
+              {image ? (
+                <div>
+                  <img
+                    className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-surface-700"
+                    src={image}
+                    alt="Profile"
+                  />
                 </div>
-              ))}
-            </div>
-            <div className="p-3 relative">
-              <div onClick={handleViewImage} className="cursor-pointer">
-                {image ? (
-                  <div>
-                    <img
-                      className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-surface-700"
-                      src={image}
-                      alt="Profile"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <img
-                      className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-surface-700"
-                      src={user}
-                      alt="Profile"
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="mt-4">
-                <p className="font-semibold text-xl text-center text-surface-50">
-                  {selectedUser?.username}
-                </p>
-                <p className="text-gray-500 text-xs uppercase mt-2">About</p>
-                <p className="text-surface-300 text-sm mt-1">
-                  {selectedUser?.about || "Astral Tech Academy|| Full stack web developer|| Sport Analyst|| Captain OIG"}
-                </p>
-                <p className="text-gray-500 text-xs uppercase mt-3">Phone number</p>
-                <p className="text-surface-300 text-sm mt-1">{selectedUser?.number || "Not provided"}</p>
-                <div className="border-t border-surface-700 mt-4"></div>
-              </div>
-
-              {viewImage && (
-                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100]">
-                  <div className="rounded-lg max-w-4xl max-h-[90vh] p-4 relative">
-                    <img
-                      className="w-full h-full object-contain rounded-lg"
-                      src={viewImage}
-                      alt="Full-size Profile"
-                    />
-                    <button
-                      onClick={() => setViewImage(null)}
-                      className="absolute top-4 right-4 h-12 w-12 hover:text-red-400 text-white bg-surface-800 hover:bg-surface-700 p-2 rounded-full transition-colors flex items-center justify-center text-xl font-bold"
-                    >
-                      ✕
-                    </button>
-                  </div>
+              ) : (
+                <div>
+                  <img
+                    className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-surface-700"
+                    src={user}
+                    alt="Profile"
+                  />
                 </div>
               )}
             </div>
+            <div className="mt-4">
+              <p className="font-semibold text-xl text-center text-surface-50">
+                {selectedUser?.username}
+              </p>
+              <p className="text-gray-500 text-xs uppercase mt-2">About</p>
+              <p className="text-surface-300 text-sm mt-1">
+                {selectedUser?.about || "Astral Tech Academy|| Full stack web developer|| Sport Analyst|| Captain OIG"}
+              </p>
+              <p className="text-gray-500 text-xs uppercase mt-3">Phone number</p>
+              <p className="text-surface-300 text-sm mt-1">{selectedUser?.number || "Not provided"}</p>
+              <div className="border-t border-surface-700 mt-4"></div>
+            </div>
+
+            {viewImage && (
+              <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100]">
+                <div className="rounded-lg max-w-4xl max-h-[90vh] p-4 relative">
+                  <img
+                    className="w-full h-full object-contain rounded-lg"
+                    src={viewImage}
+                    alt="Full-size Profile"
+                  />
+                  <button
+                    onClick={() => setViewImage(null)}
+                    className="absolute top-4 right-4 h-12 w-12 hover:text-red-400 text-white bg-surface-800 hover:bg-surface-700 p-2 rounded-full transition-colors flex items-center justify-center text-xl font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </motion.div>
-      )}
+        </div>
+      </Drawer>
     </div>
   );
 };

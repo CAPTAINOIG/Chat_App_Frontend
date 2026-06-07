@@ -565,6 +565,7 @@ const Chat = () => {
       <CallComponent 
         currentUserId={userId} 
         username={localStorage.getItem('username') || 'User'}
+        selectedUser={selectedUser}
       />
       {isConnecting && (
         <div className="fixed inset-0 bg-surface-900/95 backdrop-blur-sm z-50 flex items-center justify-center">

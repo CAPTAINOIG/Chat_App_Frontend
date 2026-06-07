@@ -1,58 +1,52 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPhone, FaPhoneSlash, FaSyncAlt } from 'react-icons/fa';
+import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPhone, FaPhoneSlash, FaSyncAlt, FaVolumeUp, FaUserPlus, FaPause, FaComment } from 'react-icons/fa';
 import callService from '../services/call.service';
+import defaultAvatar from '../assets/image/user.png';
 
-const CallComponent = ({ currentUserId, username }) => {
+const CallComponent = ({ currentUserId, username, selectedUser }) => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [callStatus, setCallStatus] = useState('idle');
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [connectionState, setConnectionState] = useState('new');
+  const [callDuration, setCallDuration] = useState(0);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+  const [isHeld, setIsHeld] = useState(false);
   
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localAudioRef = useRef(null);
   const remoteAudioRef = useRef(null);
-
-  useEffect(() => {
-    // Listen for incoming calls
-    callService.on('incomingCall', handleIncomingCall);
-    callService.on('callAccepted', handleCallAccepted);
-    callService.on('callRejected', handleCallRejected);
-    callService.on('callEnded', handleCallEnded);
-    callService.on('callConnected', handleCallConnected);
-    callService.on('localStream', handleLocalStream);
-    callService.on('remoteStream', handleRemoteStream);
-    callService.on('connectionState', handleConnectionState);
-
-    return () => {
-      // Cleanup listeners
-      callService.off('incomingCall', handleIncomingCall);
-      callService.off('callAccepted', handleCallAccepted);
-      callService.off('callRejected', handleCallRejected);
-      callService.off('callEnded', handleCallEnded);
-      callService.off('callConnected', handleCallConnected);
-      callService.off('localStream', handleLocalStream);
-      callService.off('remoteStream', handleRemoteStream);
-      callService.off('connectionState', handleConnectionState);
-    };
-  }, []);
+  const timerRef = useRef(null);
+  const ringtoneRef = useRef(null);
 
   const handleIncomingCall = (call) => {
     console.log('📞 Incoming call received:', call);
     setIncomingCall(call);
     setCallStatus('ringing');
+    if (ringtoneRef.current) {
+      ringtoneRef.current.loop = true;
+      ringtoneRef.current.play().catch(e => console.error('Ringtone play error:', e));
+    }
   };
 
   const handleCallAccepted = (data) => {
     console.log('✅ Call accepted:', data);
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
     setCallStatus('connecting');
     setActiveCall(data);
   };
 
   const handleCallRejected = () => {
     console.log('❌ Call rejected');
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
     setCallStatus('rejected');
     setTimeout(() => {
       setCallStatus('idle');
@@ -63,6 +57,10 @@ const CallComponent = ({ currentUserId, username }) => {
 
   const handleCallEnded = () => {
     console.log('📞 Call ended');
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
     setCallStatus('ended');
     setTimeout(() => {
       setCallStatus('idle');
@@ -99,6 +97,79 @@ const CallComponent = ({ currentUserId, username }) => {
   const handleConnectionState = (state) => {
     console.log('🔗 Connection state changed:', state);
     setConnectionState(state);
+  };
+
+  const handleCallInitiated = (call) => {
+    console.log('📞 Call initiated locally:', call);
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+    setActiveCall(call);
+    setCallStatus('connecting');
+  };
+
+  useEffect(() => {
+    // Listen for incoming calls
+    callService.on('incomingCall', handleIncomingCall);
+    callService.on('callAccepted', handleCallAccepted);
+    callService.on('callRejected', handleCallRejected);
+    callService.on('callEnded', handleCallEnded);
+    callService.on('callConnected', handleCallConnected);
+    callService.on('localStream', handleLocalStream);
+    callService.on('remoteStream', handleRemoteStream);
+    callService.on('connectionState', handleConnectionState);
+    callService.on('callInitiated', handleCallInitiated);
+
+    return () => {
+      // Cleanup listeners
+      callService.off('incomingCall', handleIncomingCall);
+      callService.off('callAccepted', handleCallAccepted);
+      callService.off('callRejected', handleCallRejected);
+      callService.off('callEnded', handleCallEnded);
+      callService.off('callConnected', handleCallConnected);
+      callService.off('localStream', handleLocalStream);
+      callService.off('remoteStream', handleRemoteStream);
+      callService.off('connectionState', handleConnectionState);
+      callService.off('callInitiated', handleCallInitiated);
+      // Cleanup timer
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  // Timer for call duration
+  useEffect(() => {
+    if (callStatus === 'connected') {
+      timerRef.current = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setCallDuration(0);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [callStatus]);
+
+  // Format duration (MM:SS)
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Toggle speaker
+  const toggleSpeaker = () => {
+    setIsSpeakerOn(!isSpeakerOn);
+    // Note: Actual speaker routing would be handled by callService
+  };
+
+  // Toggle hold
+  const toggleHold = () => {
+    setIsHeld(!isHeld);
+    // Note: Actual hold logic would be handled by callService
   };
 
   // Call actions
@@ -169,41 +240,58 @@ const CallComponent = ({ currentUserId, username }) => {
     const isVideoCall = incomingCall.callType === 'video';
     
     return (
-      <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="bg-surface-800 rounded-2xl p-8 text-center max-w-sm w-full mx-4 shadow-2xl border border-surface-700">
-          <div className="mb-6">
-            <div className="w-24 h-24 mx-auto mb-4 bg-surface-700 rounded-full flex items-center justify-center">
-              <img 
-                src={incomingCall.callerInfo?.profilePicture || '/default-avatar.png'} 
-                alt="Caller"
-                className="w-20 h-20 rounded-full object-cover"
-                onError={(e) => {
-                  e.target.src = '/default-avatar.png';
-                }}
-              />
-            </div>
-            <h3 className="text-xl font-semibold text-surface-50 mb-2">
-              {incomingCall.callerInfo?.username || 'Unknown'}
-            </h3>
-            <p className="text-surface-300 flex items-center justify-center gap-2">
-              {isVideoCall ? <FaVideo /> : <FaPhone />}
-              {isVideoCall ? 'Video Call' : 'Voice Call'}
-            </p>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-between py-12 bg-[#0a1628]">
+        {/* Top: Caller Info */}
+        <div className="text-center">
+          <div className="w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
+            <img 
+              src={incomingCall.callerInfo?.profilePicture || defaultAvatar} 
+              alt="Caller"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.src = defaultAvatar;
+              }}
+            />
           </div>
-          
-          <div className="flex justify-center gap-6">
-            <button 
-              onClick={rejectCall} 
-              className="w-16 h-16 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xl transition-colors shadow-lg"
-            >
-              <FaPhoneSlash />
-            </button>
-            <button 
-              onClick={acceptCall} 
-              className="w-16 h-16 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center text-xl transition-colors shadow-lg"
-            >
-              <FaPhone />
-            </button>
+          <h2 className="text-3xl font-semibold text-white mb-2">
+            {incomingCall.callerInfo?.username || 'Unknown'}
+          </h2>
+          <p className="text-lg text-gray-300">
+            {isVideoCall ? 'WhatsApp Video' : 'WhatsApp Voice'} • Ringing...
+          </p>
+        </div>
+
+        {/* Bottom: Controls */}
+        <div className="w-full max-w-md px-8">
+          <div className="flex justify-between items-end mb-8">
+            <div className="flex flex-col items-center gap-2">
+              <button className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white text-xl hover:bg-white/20 transition-colors">
+                <FaVolumeUp />
+              </button>
+              <span className="text-xs text-white/70">Speaker</span>
+            </div>
+
+            <div className="flex gap-8">
+              <button 
+                onClick={rejectCall} 
+                className="w-20 h-20 bg-[#ff3b30] hover:bg-[#ff2d55] text-white rounded-full flex items-center justify-center text-3xl transition-all shadow-lg"
+              >
+                <FaPhoneSlash />
+              </button>
+              <button 
+                onClick={acceptCall} 
+                className="w-20 h-20 bg-[#34c759] hover:bg-[#30d158] text-white rounded-full flex items-center justify-center text-3xl transition-all shadow-lg"
+              >
+                {isVideoCall ? <FaVideo /> : <FaPhone />}
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <button className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white text-xl hover:bg-white/20 transition-colors">
+                <FaComment />
+              </button>
+              <span className="text-xs text-white/70">Message</span>
+            </div>
           </div>
         </div>
       </div>
@@ -213,122 +301,284 @@ const CallComponent = ({ currentUserId, username }) => {
   // Render active call interface
   if (activeCall || callStatus !== 'idle') {
     const isVideoCall = activeCall?.callType === 'video' || incomingCall?.callType === 'video';
+    // Determine if we are the caller (initiated the call)
+    const isCaller = activeCall && (activeCall.callerInfo?.id === currentUserId || activeCall.callerInfo?._id === currentUserId);
+    // Get the user to display (incoming: caller, outgoing: selectedUser)
+    const displayUser = isCaller ? selectedUser : (activeCall?.callerInfo || incomingCall?.callerInfo || {});
     
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col">
-        {/* Call Header */}
-        <div className="flex-shrink-0 bg-black/50 backdrop-blur-sm p-4 text-center">
-          <h3 className="text-xl font-semibold text-white mb-1">
-            {getStatusText()}
-          </h3>
-          <p className={`text-sm ${getConnectionStatusColor()}`}>
-            {connectionState === 'connected' ? '🟢 Connected' : 
-             connectionState === 'connecting' ? '🟡 Connecting' : 
-             connectionState === 'failed' ? '🔴 Connection failed' : 
-             '⚪ Initializing'}
-          </p>
-        </div>
+    let callUI;
 
-        {/* Video Container */}
-        {isVideoCall && (
-          <div className="flex-1 relative overflow-hidden">
-            {/* Remote video (full screen) */}
+    if (isVideoCall) {
+      // VIDEO CALL UI
+      callUI = (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          {/* Remote video (full screen) */}
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover bg-[#1c1c1e]"
+          />
+          
+          {/* Local video (floating) */}
+          <div className="absolute top-6 right-6 w-36 h-48 bg-[#1c1c1e] rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl">
             <video
-              ref={remoteVideoRef}
+              ref={localVideoRef}
               autoPlay
               playsInline
-              className="w-full h-full object-cover bg-surface-900"
+              muted
+              className="w-full h-full object-cover"
             />
-            
-            {/* Local video (picture-in-picture) */}
-            <div className="absolute top-4 right-4 w-32 h-24 bg-surface-800 rounded-lg overflow-hidden border-2 border-surface-600 shadow-lg">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-            </div>
           </div>
-        )}
 
-        {/* Audio elements (always present) */}
-        <audio ref={localAudioRef} autoPlay muted />
-        <audio ref={remoteAudioRef} autoPlay />
+          {/* Audio elements */}
+          <audio ref={localAudioRef} autoPlay muted />
+          <audio ref={remoteAudioRef} autoPlay />
 
-        {/* Call Controls */}
-        {callStatus === 'connected' && (
-          <div className="flex-shrink-0 bg-black/50 backdrop-blur-sm p-6">
-            <div className="flex justify-center items-center gap-4">
-              {/* Mute button */}
-              <button
-                onClick={toggleMute}
-                className={`w-12 h-12 rounded-full flex items-center justify-center text-lg transition-all ${
-                  isMuted 
-                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                    : 'bg-surface-700 hover:bg-surface-600 text-surface-200'
-                }`}
-                title={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted ? <FaMicrophoneSlash /> : <FaMicrophone />}
-              </button>
-
-              {/* Video controls (only for video calls) */}
-              {isVideoCall && (
-                <>
-                  <button
-                    onClick={toggleCamera}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-lg transition-all ${
-                      !isCameraOn 
-                        ? 'bg-red-500 hover:bg-red-600 text-white' 
-                        : 'bg-surface-700 hover:bg-surface-600 text-surface-200'
-                    }`}
-                    title={isCameraOn ? 'Turn off camera' : 'Turn on camera'}
-                  >
-                    {isCameraOn ? <FaVideo /> : <FaVideoSlash />}
-                  </button>
-                  
-                  <button
-                    onClick={switchCamera}
-                    className="w-12 h-12 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-full flex items-center justify-center text-lg transition-all"
-                    title="Switch camera"
-                  >
-                    <FaSyncAlt />
-                  </button>
-                </>
-              )}
-
-              {/* End call button */}
-              <button
-                onClick={endCall}
-                className="w-14 h-14 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xl transition-all shadow-lg"
-                title="End call"
-              >
-                <FaPhoneSlash />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Status overlay for non-connected states */}
-        {callStatus !== 'connected' && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+          {/* Top Overlay */}
+          <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/60 to-transparent">
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-surface-700 rounded-full flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-              <p className="text-white text-lg font-medium">
-                {getStatusText()}
+              <h3 className="text-xl font-semibold text-white mb-1">
+                {displayUser?.username || 'Unknown'}
+              </h3>
+              <p className="text-lg text-white/80">
+                {callStatus === 'connected' ? formatDuration(callDuration) : getStatusText()}
               </p>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Bottom Controls */}
+          {callStatus === 'connected' && (
+            <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="flex justify-around items-center max-w-lg mx-auto">
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    onClick={toggleMute}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
+                      isMuted 
+                        ? 'bg-[#ff3b30] text-white' 
+                        : 'bg-white/20 text-white hover:bg-white/30'
+                    }`}
+                  >
+                    {isMuted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+                  </button>
+                  <span className="text-xs text-white/80">Mute</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    onClick={toggleCamera}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
+                      !isCameraOn 
+                        ? 'bg-[#ff3b30] text-white' 
+                        : 'bg-white/20 text-white hover:bg-white/30'
+                    }`}
+                  >
+                    {isCameraOn ? <FaVideo /> : <FaVideoSlash />}
+                  </button>
+                  <span className="text-xs text-white/80">Camera</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    onClick={endCall}
+                    className="w-20 h-20 bg-[#ff3b30] text-white rounded-full flex items-center justify-center text-3xl transition-all hover:bg-[#ff2d55] shadow-lg"
+                  >
+                    <FaPhoneSlash />
+                  </button>
+                  <span className="text-xs text-white/80">End</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    onClick={switchCamera}
+                    className="w-16 h-16 bg-white/20 text-white rounded-full flex items-center justify-center text-2xl transition-all hover:bg-white/30"
+                  >
+                    <FaSyncAlt />
+                  </button>
+                  <span className="text-xs text-white/80">Flip</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    onClick={toggleSpeaker}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
+                      isSpeakerOn 
+                        ? 'bg-[#34c759] text-white' 
+                        : 'bg-white/20 text-white hover:bg-white/30'
+                    }`}
+                  >
+                    <FaVolumeUp />
+                  </button>
+                  <span className="text-xs text-white/80">Speaker</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Connecting overlay */}
+          {callStatus !== 'connected' && (
+            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-between py-10">
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full border-4 border-white/20 flex items-center justify-center">
+                  <div className="w-10 h-10 border-3 border-white/50 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <h3 className="text-2xl font-semibold text-white mb-2">
+                  {displayUser?.username || 'Unknown'}
+                </h3>
+                <p className="text-lg text-white/80">
+                  {getStatusText()}
+                </p>
+              </div>
+
+              {/* End Call Button */}
+              <div>
+                <button
+                  onClick={endCall}
+                  className="w-20 h-20 bg-[#ff3b30] text-white rounded-full flex items-center justify-center text-3xl transition-all hover:bg-[#ff2d55] shadow-lg"
+                >
+                  <FaPhoneSlash />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      // VOICE CALL UI
+      callUI = (
+        <div className="fixed inset-0 bg-[#0a1628] z-50 flex flex-col items-center justify-between py-10">
+          {/* Top Section */}
+          <div className="text-center">
+            <div className="w-40 h-40 mx-auto mb-6 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
+              <img
+                src={displayUser?.profilePicture || defaultAvatar}
+                alt="Caller"
+                className="w-full h-full object-cover"
+                onError={(e) => e.target.src = defaultAvatar}
+              />
+            </div>
+            <h2 className="text-3xl font-semibold text-white mb-2">
+              {displayUser?.username || 'Unknown'}
+            </h2>
+            <p className="text-xl text-gray-300">
+              {callStatus === 'connected' ? formatDuration(callDuration) : getStatusText()}
+            </p>
+          </div>
+
+          {/* Audio elements */}
+          <audio ref={localAudioRef} autoPlay muted />
+          <audio ref={remoteAudioRef} autoPlay />
+
+          {/* Bottom Controls */}
+          <div className="w-full max-w-lg px-8">
+            {callStatus === 'connected' && (
+              <div className="flex justify-around items-center mb-8">
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={toggleSpeaker}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
+                      isSpeakerOn 
+                        ? 'bg-[#34c759] text-white' 
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <FaVolumeUp />
+                  </button>
+                  <span className="text-sm text-white/70">Speaker</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={toggleMute}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
+                      isMuted 
+                        ? 'bg-[#ff3b30] text-white' 
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    {isMuted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+                  </button>
+                  <span className="text-sm text-white/70">Mute</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={toggleHold}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
+                      isHeld 
+                        ? 'bg-[#ff3b30] text-white' 
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <FaPause />
+                  </button>
+                  <span className="text-sm text-white/70">Hold</span>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-around items-center">
+              {callStatus === 'connected' && (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    className="w-16 h-16 bg-white/10 text-white rounded-full flex items-center justify-center text-2xl transition-all hover:bg-white/20"
+                  >
+                    <FaUserPlus />
+                  </button>
+                  <span className="text-sm text-white/70">Add call</span>
+                </div>
+              )}
+
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  onClick={endCall}
+                  className="w-20 h-20 bg-[#ff3b30] text-white rounded-full flex items-center justify-center text-3xl transition-all hover:bg-[#ff2d55] shadow-lg"
+                >
+                  <FaPhoneSlash />
+                </button>
+                <span className="text-sm text-white/70">End</span>
+              </div>
+
+              {callStatus === 'connected' && (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    className="w-16 h-16 bg-white/10 text-white rounded-full flex items-center justify-center text-2xl transition-all hover:bg-white/20"
+                  >
+                    <FaComment />
+                  </button>
+                  <span className="text-sm text-white/70">Message</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {callUI}
+        {/* Ringtone */}
+        <audio
+          ref={ringtoneRef}
+          src="https://assets.mixkit.co/sfx/preview/mixkit-classic-phone-ringtone-2109.mp3"
+          preload="auto"
+        />
+      </>
     );
   }
 
-  return null;
+  return (
+    <>
+      {/* Ringtone */}
+      <audio
+        ref={ringtoneRef}
+        src="https://assets.mixkit.co/sfx/preview/mixkit-classic-phone-ringtone-2109.mp3"
+        preload="auto"
+      />
+    </>
+  );
 };
 
 export default CallComponent;

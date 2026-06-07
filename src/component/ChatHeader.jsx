@@ -42,6 +42,7 @@ const ChatHeader = ({ selectedUser, image, setImage, pinnedMessage, setPinnedMes
             receiverId={selectedUser._id}
             receiverName={selectedUser.username}
             isOnline={selectedUser.online}
+            accountOwner={accountOwner}
           />
 
           {/* Pinned Messages Dropdown Button */}

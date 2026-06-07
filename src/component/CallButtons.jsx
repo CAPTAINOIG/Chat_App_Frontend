@@ -3,7 +3,7 @@ import { FaPhone, FaVideo } from 'react-icons/fa';
 import callService from '../services/call.service';
 import { toast } from 'sonner';
 
-const CallButtons = ({ receiverId, receiverName, isOnline }) => {
+const CallButtons = ({ receiverId, receiverName, isOnline, accountOwner }) => {
   const [isCallServiceReady, setIsCallServiceReady] = useState(true);
   const [isInitiating, setIsInitiating] = useState(false);
 
@@ -39,7 +39,11 @@ const CallButtons = ({ receiverId, receiverName, isOnline }) => {
     setIsInitiating(true);
     try {
       console.log('📞 Initiating voice call to:', receiverId);
-      await callService.initiateCall(receiverId, 'voice');
+      await callService.initiateCall(receiverId, 'voice', {
+        id: accountOwner._id,
+        username: accountOwner.username,
+        profilePicture: accountOwner.profilePicture
+      });
       toast.success(`Voice call initiated to ${receiverName}`);
       setIsCallServiceReady(false);
     } catch (error) {
@@ -64,7 +68,11 @@ const CallButtons = ({ receiverId, receiverName, isOnline }) => {
     setIsInitiating(true);
     try {
       console.log('📹 Initiating video call to:', receiverId);
-      await callService.initiateCall(receiverId, 'video');
+      await callService.initiateCall(receiverId, 'video', {
+        id: accountOwner._id,
+        username: accountOwner.username,
+        profilePicture: accountOwner.profilePicture
+      });
       toast.success(`Video call initiated to ${receiverName}`);
       setIsCallServiceReady(false);
     } catch (error) {

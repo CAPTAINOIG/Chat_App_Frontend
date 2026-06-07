@@ -10,7 +10,8 @@ class SocketService {
   constructor() {
     this.socket = null;
     this.userId = null;
-    this.listeners = new Map();
+    this.listeners = new Map(); // Stores all registered listeners (for cleanup)
+    this.pendingListeners = []; // Queues listeners registered before connect()
     this.messageQueue = [];
     this.isReconnecting = false;
   }
@@ -32,6 +33,18 @@ class SocketService {
     });
 
     this.setupDefaultListeners(token);
+    
+    // Register all pending listeners!
+    console.log('🔌 SocketService: Registering pending listeners:', this.pendingListeners.length);
+    this.pendingListeners.forEach(({ event, callback }) => {
+      this.socket.on(event, callback);
+      if (!this.listeners.has(event)) {
+        this.listeners.set(event, []);
+      }
+      this.listeners.get(event).push(callback);
+    });
+    this.pendingListeners = []; // Clear pending listeners
+    
     return this.socket;
   }
 
@@ -134,19 +147,26 @@ class SocketService {
   }
 
   on(event, callback) {
-    if (!this.socket) return;
-    
-    this.socket.on(event, callback);
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
+    console.log('🔌 SocketService: Registering listener for event:', event);
+    if (this.socket) {
+      // Socket exists, register listener now
+      this.socket.on(event, callback);
+      if (!this.listeners.has(event)) {
+        this.listeners.set(event, []);
+      }
+      this.listeners.get(event).push(callback);
+    } else {
+      // Socket doesn't exist yet, add to pending listeners
+      this.pendingListeners.push({ event, callback });
+      console.log('🔌 SocketService: Adding listener to pending queue:', event);
     }
-    this.listeners.get(event).push(callback);
   }
 
   off(event, callback) {
-    if (!this.socket) return;
-    
-    this.socket.off(event, callback);
+    if (this.socket) {
+      this.socket.off(event, callback);
+    }
+    // Remove from listeners map
     if (this.listeners.has(event)) {
       const callbacks = this.listeners.get(event);
       const index = callbacks.indexOf(callback);
@@ -154,6 +174,10 @@ class SocketService {
         callbacks.splice(index, 1);
       }
     }
+    // Also remove from pending listeners (in case it was queued)
+    this.pendingListeners = this.pendingListeners.filter(
+      (l) => !(l.event === event && l.callback === callback)
+    );
   }
 
   emit(event, data) {
@@ -170,6 +194,7 @@ class SocketService {
         });
       });
       this.listeners.clear();
+      this.pendingListeners = [];
       this.socket.disconnect();
       this.socket = null;
     }
