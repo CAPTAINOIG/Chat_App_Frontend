@@ -99,26 +99,11 @@ export const useMessages = (userId, socket) => {
       toast.error("Invalid message id");
       return false;
     }
-
     setIsDeleting(true);
     try {
-      // Try API deletion first (for database persistence)
-      try {
-        const response = await deleteMessageApi(messageId);
-        // Also emit socket event to notify other users in real-time
-        if (socket && socket.deleteMessage) {
-          await socket.deleteMessage(messageId);
-        }
-        toast.success(response.message || "Message deleted successfully");
-      } catch (apiError) {
-        // If API fails, try socket method (your backend pattern)
-        if (socket && socket.deleteMessage) {
-          await socket.deleteMessage(messageId);
-          toast.success("Message deleted successfully");
-        } else {
-          throw new Error("No deletion method available");
-        }
-      }
+      const response = await deleteMessageApi(messageId);
+      console.log(response)
+      toast.success(response.message || "Message deleted successfully");
       // Add to deleted messages cache
       setDeletedMessageIds(prev => new Set([...prev, messageId]));
       // Remove from local state immediately
@@ -128,22 +113,19 @@ export const useMessages = (userId, socket) => {
       });
       return true;
     } catch (error) {
-      toast.error("Failed to delete message: " + (error.message || "Unknown error"));
+      console.log(error)
+      toast.error(error.response.data.message);
       return false;
     } finally {
       setIsDeleting(false);
     }
-  }, [socket, setMessages]);
+  }, [setMessages]);
 
     // Fetch pinned messages
   const fetchPinnedMessages = useCallback(async (senderId, receiverId) => {
-    console.log('📌 Fetching pinned messages:', { senderId, receiverId });
     try {
       const response = await getPinnedMessages(senderId, receiverId);
-      console.log('📌 Pinned messages API response:', response);
-      
       if (response) {
-        // Try different possible response structures
         let pinnedMessages = null;
         if (response.pinMessage) {
           pinnedMessages = response.pinMessage;
@@ -154,12 +136,9 @@ export const useMessages = (userId, socket) => {
         } else if (response.pinnedMessages) {
           pinnedMessages = response.pinnedMessages;
         }
-        
-        console.log('📌 Setting pinned messages:', pinnedMessages);
         setPinnedMessage(pinnedMessages);
       }
     } catch (error) {
-      console.error('📌 Error fetching pinned messages:', error);
       toast.error(handleApiError(error));
       return false;
     }

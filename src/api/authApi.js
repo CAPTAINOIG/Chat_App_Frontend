@@ -51,10 +51,6 @@ export const googleAuth = async (googleToken) => {
   return response.data;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 💬 MESSAGE APIs
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export const getMessage = async (userId, senderId, pagination = {}) => {
   const params = new URLSearchParams({
     userId,
@@ -69,10 +65,6 @@ export const deleteMessage = async (messageId) => {
   const response = await axiosInstance.delete(`${ENDPOINTS.DELETE_MESSAGE}/${messageId}`);
   return response.data;
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📌 MESSAGE ACTIONS APIs
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const pinMessage = async (messageId, senderId, receiverId) => {
   const payload = {
@@ -101,10 +93,6 @@ export const getPinnedMessages = async (userId, receiverId) => {
   return response.data;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 👤 PROFILE APIs
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export const uploadProfilePicture = async (userId, base64) => {
   const response = await axiosInstance.post(ENDPOINTS.PROFILE_PICTURE, {
     userId,
@@ -132,11 +120,6 @@ export const getProfileData = async (userId) => {
   return response.data;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔧 UTILITY FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// Helper function to handle API errors consistently
 export const handleApiError = (error, defaultMessage = "An error occurred") => {
   if (error.response) {
     const status = error.response.status;
@@ -191,42 +174,4 @@ export const fileToBase64 = (file) => {
   });
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📤 EXPORT ENDPOINTS (for external use if needed)
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export { ENDPOINTS };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 📋 API SUMMARY
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/*
-AUTHENTICATION:
-- signUp(user)
-- signIn(user) 
-- dashboard()
-- googleAuth(googleToken)
-
-MESSAGES:
-- getMessage(userId, senderId, pagination?)
-- deleteMessage(messageId)
-- getUnreadCount()
-- markMessagesAsRead(senderId)
-
-MESSAGE ACTIONS:
-- pinMessage(messageId, senderId, receiverId)
-- unpinMessage(messageId, senderId, receiverId)
-- getPinnedMessages(userId, receiverId)
-
-PROFILE:
-- uploadProfilePicture(userId, base64)
-- fetchProfilePicture(userId)
-- updateProfile(userId, profileData)
-- getProfileData(userId)
-
-UTILITIES:
-- handleApiError(error, defaultMessage?)
-- validateImageFile(file)
-- fileToBase64(file)
-*/

@@ -35,7 +35,6 @@ class SocketService {
     this.setupDefaultListeners(token);
     
     // Register all pending listeners!
-    console.log('🔌 SocketService: Registering pending listeners:', this.pendingListeners.length);
     this.pendingListeners.forEach(({ event, callback }) => {
       this.socket.on(event, callback);
       if (!this.listeners.has(event)) {
@@ -43,7 +42,7 @@ class SocketService {
       }
       this.listeners.get(event).push(callback);
     });
-    this.pendingListeners = []; // Clear pending listeners
+    this.pendingListeners = []; 
     
     return this.socket;
   }
@@ -61,7 +60,6 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
@@ -147,7 +145,6 @@ class SocketService {
   }
 
   on(event, callback) {
-    console.log('🔌 SocketService: Registering listener for event:', event);
     if (this.socket) {
       // Socket exists, register listener now
       this.socket.on(event, callback);
@@ -158,7 +155,6 @@ class SocketService {
     } else {
       // Socket doesn't exist yet, add to pending listeners
       this.pendingListeners.push({ event, callback });
-      console.log('🔌 SocketService: Adding listener to pending queue:', event);
     }
   }
 
