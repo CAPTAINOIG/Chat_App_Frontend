@@ -10,6 +10,7 @@ class CallService {
     this.isCallActive = false;
     this.eventHandlers = {};
     this.iceCandidatesQueue = []; // Queue for ICE candidates before remote description is set
+    this.listenersInitialized = false; // Track if listeners are initialized
     
     // WebRTC configuration - Use public STUN servers for NAT traversal
     this.rtcConfig = {
@@ -23,7 +24,8 @@ class CallService {
       iceCandidatePoolSize: 10
     };
     
-    this.initializeSocketListeners();
+    // Don't initialize socket listeners in constructor
+    // They will be initialized when socket is ready
   }
 
   // Event handling
@@ -47,15 +49,27 @@ class CallService {
     }
   }
 
-  // Initialize socket listeners for call signaling
-  initializeSocketListeners() {
-    if (!socketService) return;
+  // Initialize socket listeners for call signaling (call this after socket is connected)
+  ensureSocketListenersInitialized() {
+    if (this.listenersInitialized) {
+      console.log('✅ Socket listeners already initialized');
+      return;
+    }
 
-    console.log('🔌 Initializing call socket listeners');
+    if (!socketService) {
+      console.error('❌ socketService not available - call listeners not initialized');
+      return;
+    }
+
+    console.log('🔌 Initializing call socket listeners NOW');
+    console.log('Socket events:', SOCKET_EVENTS);
+    console.log('Socket connected:', socketService.isConnected?.());
+    console.log('Socket instance available:', !!socketService.socket);
 
     // Incoming call
+    console.log('📢 Registering listener for event:', SOCKET_EVENTS.CALL_INCOMING);
     socketService.on(SOCKET_EVENTS.CALL_INCOMING, (data) => {
-      console.log('📞 [SOCKET] Incoming call received:', data);
+      console.log('📞 [SOCKET] Incoming call received on FRONTEND:', data);
       this.currentCall = {
         callId: data.callId,
         callerId: data.callerId,
@@ -63,6 +77,7 @@ class CallService {
         callType: data.callType,
         status: 'incoming'
       };
+      console.log('📢 Emitting incomingCall event to local handlers');
       this.emit('incomingCall', this.currentCall);
     });
 
@@ -132,6 +147,9 @@ class CallService {
       console.error('❌ [SOCKET] WebRTC error:', data);
       this.emit('webrtcError', data);
     });
+
+    this.listenersInitialized = true;
+    console.log('✅ All call socket listeners registered successfully');
   }
 
   // Initiate a call
@@ -140,6 +158,14 @@ class CallService {
       console.group('📞 Initiate Call');
       console.log('Receiver ID:', receiverId);
       console.log('Call Type:', callType);
+
+      // Check socket connection status
+      const isSocketConnected = socketService.isConnected?.() || socketService.socket?.connected || false;
+      console.log('🔌 Socket connected:', isSocketConnected);
+      if (!isSocketConnected) {
+        console.warn('⚠️ Socket not connected! Waiting 1 second before retrying...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
 
       if (this.isCallActive) {
         throw new Error('Already in a call');
@@ -168,12 +194,13 @@ class CallService {
 
       // 4. Send call initiation to backend
       console.log('Step 2: Sending call:initiate to backend...');
+      console.log('Socket events constant:', SOCKET_EVENTS.CALL_INITIATE);
       socketService.emit(SOCKET_EVENTS.CALL_INITIATE, {
         receiverId,
         callType
       });
 
-      console.log('Call initiation sent to backend');
+      console.log('✅ Call initiation sent to backend');
       console.groupEnd();
 
       return this.currentCall;

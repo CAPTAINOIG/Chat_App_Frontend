@@ -7,6 +7,7 @@ import { useMessages } from "../hooks/useMessages";
 import { SOCKET_EVENTS } from "../constants/socketEvents";
 import { getUsers } from "../api/authApi";
 import socketService from "../services/socket.service";
+import callService from "../services/call.service";
 
 // Components
 import UserList from "./UserList";
@@ -90,9 +91,16 @@ const Chat = () => {
 
     // Connect socket first
     setIsConnecting(true);
+    console.log('🔌 Chat.jsx: Connecting socket...');
     const socketInstance = socketService.connect(userId, token);
     setSocket(socketInstance);
     setIsConnected(socketService.isConnected());
+    
+    // Wait a bit for socket to stabilize, then initialize call service listeners
+    const initCallListenersTimer = setTimeout(() => {
+      console.log('🔌 Chat.jsx: Socket stabilized, initializing call service listeners...');
+      callService.ensureSocketListenersInitialized();
+    }, 500);
 
     // Listen for online users updates - ALL POSSIBLE EVENT NAMES!
     const handleOnlineUsersUpdate = (onlineUsersIds) => {
@@ -258,6 +266,7 @@ const Chat = () => {
 
     return () => {
       clearTimeout(fallbackTimer);
+      clearTimeout(initCallListenersTimer);
       socketService.off(SOCKET_EVENTS.GET_USERS, handleGetUsers);
       socketService.off(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
       socketService.off(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);

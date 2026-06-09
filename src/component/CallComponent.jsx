@@ -19,23 +19,48 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   const localAudioRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const timerRef = useRef(null);
-  const ringtoneRef = useRef(null);
+  const notificationRef = useRef(null);
 
   const handleIncomingCall = (call) => {
-    console.log('📞 Incoming call received:', call);
+    console.log('📞 [CallComponent] Incoming call handler triggered with:', call);
     setIncomingCall(call);
     setCallStatus('ringing');
-    if (ringtoneRef.current) {
-      ringtoneRef.current.loop = true;
-      ringtoneRef.current.play().catch(e => console.error('Ringtone play error:', e));
+    
+    // Show browser notification for incoming call
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const callerName = call.callerInfo?.username || 'Unknown';
+      const callType = call.callType === 'video' ? 'Video Call' : 'Voice Call';
+      
+      try {
+        notificationRef.current = new Notification(`Incoming ${callType}`, {
+          body: `${callerName} is calling...`,
+          icon: call.callerInfo?.profilePicture || defaultAvatar,
+          tag: 'incoming-call',
+          requireInteraction: true,
+          badge: defaultAvatar
+        });
+        
+        console.log('✅ Notification displayed successfully');
+        
+        // Close notification when call is answered or rejected
+        notificationRef.current.onclick = () => {
+          window.focus();
+          notificationRef.current.close();
+        };
+      } catch (e) {
+        console.error('❌ Failed to show notification:', e);
+      }
+    } else if ('Notification' in window && Notification.permission !== 'granted') {
+      console.warn('⚠️ Notification permission not granted');
     }
   };
 
   const handleCallAccepted = (data) => {
     console.log('✅ Call accepted:', data);
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
+    // Close notification
+    if (notificationRef.current) {
+      notificationRef.current.close();
+      notificationRef.current = null;
     }
     setCallStatus('connecting');
     setActiveCall(data);
@@ -43,9 +68,10 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
 
   const handleCallRejected = () => {
     console.log('❌ Call rejected');
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
+    // Close notification
+    if (notificationRef.current) {
+      notificationRef.current.close();
+      notificationRef.current = null;
     }
     setCallStatus('rejected');
     setTimeout(() => {
@@ -57,9 +83,10 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
 
   const handleCallEnded = () => {
     console.log('📞 Call ended');
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
+    // Close notification
+    if (notificationRef.current) {
+      notificationRef.current.close();
+      notificationRef.current = null;
     }
     setCallStatus('ended');
     setTimeout(() => {
@@ -101,16 +128,25 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
 
   const handleCallInitiated = (call) => {
     console.log('📞 Call initiated locally:', call);
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
+    // Close notification when call is initiated locally
+    if (notificationRef.current) {
+      notificationRef.current.close();
+      notificationRef.current = null;
     }
     setActiveCall(call);
     setCallStatus('connecting');
   };
 
   useEffect(() => {
+    // Request notification permission on mount
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('📢 Notification permission:', permission);
+      });
+    }
+    
     // Listen for incoming calls
+    console.log('🎧 CallComponent: Registering event listeners...');
     callService.on('incomingCall', handleIncomingCall);
     callService.on('callAccepted', handleCallAccepted);
     callService.on('callRejected', handleCallRejected);
@@ -120,9 +156,11 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
     callService.on('remoteStream', handleRemoteStream);
     callService.on('connectionState', handleConnectionState);
     callService.on('callInitiated', handleCallInitiated);
+    console.log('✅ CallComponent: All event listeners registered');
 
     return () => {
       // Cleanup listeners
+      console.log('🗑️ CallComponent: Cleaning up event listeners');
       callService.off('incomingCall', handleIncomingCall);
       callService.off('callAccepted', handleCallAccepted);
       callService.off('callRejected', handleCallRejected);
@@ -559,24 +597,13 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
     return (
       <>
         {callUI}
-        {/* Ringtone */}
-        <audio
-          ref={ringtoneRef}
-          src="https://assets.mixkit.co/sfx/preview/mixkit-classic-phone-ringtone-2109.mp3"
-          preload="auto"
-        />
       </>
     );
   }
 
   return (
     <>
-      {/* Ringtone */}
-      <audio
-        ref={ringtoneRef}
-        src="https://assets.mixkit.co/sfx/preview/mixkit-classic-phone-ringtone-2109.mp3"
-        preload="auto"
-      />
+      {/* Using browser notifications instead of audio for better reliability */}
     </>
   );
 };

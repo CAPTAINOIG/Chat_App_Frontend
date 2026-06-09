@@ -147,6 +147,7 @@ class SocketService {
   on(event, callback) {
     if (this.socket) {
       // Socket exists, register listener now
+      console.log(`🔌 SocketService: Registering listener for event "${event}" (socket exists)`);
       this.socket.on(event, callback);
       if (!this.listeners.has(event)) {
         this.listeners.set(event, []);
@@ -154,6 +155,7 @@ class SocketService {
       this.listeners.get(event).push(callback);
     } else {
       // Socket doesn't exist yet, add to pending listeners
+      console.log(`🔌 SocketService: Queueing listener for event "${event}" (socket not ready)`);
       this.pendingListeners.push({ event, callback });
     }
   }
