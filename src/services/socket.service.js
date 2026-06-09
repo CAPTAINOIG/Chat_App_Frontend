@@ -23,7 +23,7 @@ class SocketService {
 
     this.userId = userId;
     this.socket = io(SOCKET_URL, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // Allow both transports for better mobile compatibility
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
