@@ -13,6 +13,8 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   const [callDuration, setCallDuration] = useState(0);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [isHeld, setIsHeld] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
   
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -22,10 +24,8 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   const notificationRef = useRef(null);
 
   const handleIncomingCall = (call) => {
-    console.log('📞 [CallComponent] Incoming call handler triggered with:', call);
     setIncomingCall(call);
     setCallStatus('ringing');
-    
     // Show browser notification for incoming call
     if ('Notification' in window && Notification.permission === 'granted') {
       const callerName = call.callerInfo?.username || 'Unknown';
@@ -39,24 +39,18 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
           requireInteraction: true,
           badge: defaultAvatar
         });
-        
-        console.log('✅ Notification displayed successfully');
-        
         // Close notification when call is answered or rejected
         notificationRef.current.onclick = () => {
           window.focus();
           notificationRef.current.close();
         };
       } catch (e) {
-        console.error('❌ Failed to show notification:', e);
       }
     } else if ('Notification' in window && Notification.permission !== 'granted') {
-      console.warn('⚠️ Notification permission not granted');
     }
   };
 
   const handleCallAccepted = (data) => {
-    console.log('✅ Call accepted:', data);
     // Close notification
     if (notificationRef.current) {
       notificationRef.current.close();
@@ -67,7 +61,6 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   };
 
   const handleCallRejected = () => {
-    console.log('❌ Call rejected');
     // Close notification
     if (notificationRef.current) {
       notificationRef.current.close();
@@ -82,7 +75,6 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   };
 
   const handleCallEnded = () => {
-    console.log('📞 Call ended');
     // Close notification
     if (notificationRef.current) {
       notificationRef.current.close();
@@ -97,14 +89,15 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   };
 
   const handleCallConnected = () => {
-    console.log('🔗 Call connected');
     setCallStatus('connected');
   };
 
   const handleLocalStream = (stream) => {
-    console.log('📹 Local stream received:', stream);
+    console.log('🎥 Setting local stream:', stream);
+    setLocalStream(stream);
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = stream;
+      console.log('✅ Local stream attached to video element');
     }
     if (localAudioRef.current) {
       localAudioRef.current.srcObject = stream;
@@ -112,9 +105,11 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   };
 
   const handleRemoteStream = (stream) => {
-    console.log('📡 Remote stream received:', stream);
+    console.log('🎥 Setting remote stream:', stream);
+    setRemoteStream(stream);
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = stream;
+      console.log('✅ Remote stream attached to video element');
     }
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = stream;
@@ -122,12 +117,10 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   };
 
   const handleConnectionState = (state) => {
-    console.log('🔗 Connection state changed:', state);
     setConnectionState(state);
   };
 
   const handleCallInitiated = (call) => {
-    console.log('📞 Call initiated locally:', call);
     // Close notification when call is initiated locally
     if (notificationRef.current) {
       notificationRef.current.close();
@@ -156,11 +149,8 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
     callService.on('remoteStream', handleRemoteStream);
     callService.on('connectionState', handleConnectionState);
     callService.on('callInitiated', handleCallInitiated);
-    console.log('✅ CallComponent: All event listeners registered');
-
     return () => {
       // Cleanup listeners
-      console.log('🗑️ CallComponent: Cleaning up event listeners');
       callService.off('incomingCall', handleIncomingCall);
       callService.off('callAccepted', handleCallAccepted);
       callService.off('callRejected', handleCallRejected);
@@ -174,6 +164,21 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  // Sync streams to refs when they change
+  useEffect(() => {
+    if (localStream && localVideoRef.current) {
+      localVideoRef.current.srcObject = localStream;
+      console.log('📹 Local stream synced to ref');
+    }
+  }, [localStream]);
+
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      console.log('📹 Remote stream synced to ref');
+    }
+  }, [remoteStream]);
 
   // Timer for call duration
   useEffect(() => {
@@ -213,26 +218,22 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
   // Call actions
   const acceptCall = async () => {
     try {
-      console.log('✅ Accepting call:', incomingCall.callId);
       await callService.acceptCall(incomingCall.callId);
       setActiveCall(incomingCall);
       setIncomingCall(null);
       setCallStatus('connecting');
     } catch (error) {
-      console.error('Failed to accept call:', error);
       alert('Failed to accept call: ' + error.message);
     }
   };
 
   const rejectCall = () => {
-    console.log('❌ Rejecting call');
     callService.rejectCall(incomingCall.callId);
     setIncomingCall(null);
     setCallStatus('idle');
   };
 
   const endCall = () => {
-    console.log('📞 Ending call');
     callService.endCall();
     setActiveCall(null);
     setCallStatus('idle');
@@ -355,7 +356,11 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
             ref={remoteVideoRef}
             autoPlay
             playsInline
+            muted={false}
             className="w-full h-full object-cover bg-[#1c1c1e]"
+            onLoadedMetadata={() => console.log('📹 Remote video metadata loaded')}
+            onPlay={() => console.log('▶️ Remote video playing')}
+            onError={(e) => console.error('❌ Remote video error:', e)}
           />
           
           {/* Local video (floating) */}
@@ -364,14 +369,17 @@ const CallComponent = ({ currentUserId, username, selectedUser }) => {
               ref={localVideoRef}
               autoPlay
               playsInline
-              muted
+              muted={true}
               className="w-full h-full object-cover"
+              onLoadedMetadata={() => console.log('📹 Local video metadata loaded')}
+              onPlay={() => console.log('▶️ Local video playing')}
+              onError={(e) => console.error('❌ Local video error:', e)}
             />
           </div>
 
           {/* Audio elements */}
-          <audio ref={localAudioRef} autoPlay muted />
-          <audio ref={remoteAudioRef} autoPlay />
+          <audio ref={localAudioRef} autoPlay muted={true} />
+          <audio ref={remoteAudioRef} autoPlay muted={false} />
 
           {/* Top Overlay */}
           <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/60 to-transparent">
