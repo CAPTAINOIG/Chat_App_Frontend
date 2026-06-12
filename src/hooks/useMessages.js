@@ -7,6 +7,7 @@ import {
   pinMessage as pinMessageApi,
   unpinMessage as unpinMessageApi,
   getPinnedMessages,
+  uploadVoiceNote,
   handleApiError
 } from '../api/authApi';
 
@@ -220,6 +221,67 @@ export const useMessages = (userId, socket) => {
     }
   }, [messages, userId, socket]);
 
+  // Send a voice message
+  const sendVoiceMessage = useCallback(async (audioBlob, duration, receiverId, replyMessage = "") => {
+    if (!audioBlob || !receiverId || !socket) {
+      return false;
+    }
+    
+    setIsSending(true);
+    // Generate a temporary message ID for immediate display
+    const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    try {
+      // Convert blob to base64
+      const base64Audio = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
+      
+      // Upload to backend
+      const uploadResult = await uploadVoiceNote(base64Audio, duration);
+      
+      const tempMessage = {
+        messageId: tempMessageId,
+        senderId: userId,
+        receiverId,
+        type: 'voice',
+        audioUrl: uploadResult.data.audioUrl,
+        duration: uploadResult.data.duration,
+        replyTo: replyMessage,
+        timestamp: new Date(),
+        status: 'sending'
+      };
+      
+      setMessages((prevMessages) => [...prevMessages, tempMessage]);
+      
+      // Send via socket
+      const result = await socket.sendMessage(receiverId, null, replyMessage, 'voice', uploadResult.data.audioUrl, uploadResult.data.duration);
+      
+      // Update the temporary message with the real message ID
+      setMessages((prevMessages) => 
+        prevMessages.map(msg => 
+          msg.messageId === tempMessageId 
+            ? { ...msg, messageId: result.messageId, status: 'sent' }
+            : msg
+        )
+      );
+      
+      return true;
+    } catch (error) {
+      // Remove the failed message from local state
+      setMessages((prevMessages) => 
+        prevMessages.filter(msg => msg.messageId !== tempMessageId)
+      );
+      toast.error('Failed to send voice note');
+      return false;
+    } finally {
+      setIsSending(false);
+    }
+  }, [userId, socket, setMessages]);
+
   return {
     messages,
     setMessages,
@@ -227,6 +289,7 @@ export const useMessages = (userId, socket) => {
     setPinnedMessage,
     fetchMessages,
     sendMessage,
+    sendVoiceMessage,
     deleteMessage,
     pinMessage,
     unpinMessage,

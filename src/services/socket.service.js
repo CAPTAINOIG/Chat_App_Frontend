@@ -69,11 +69,11 @@ class SocketService {
     });
   }
 
-  async sendMessage(receiverId, content, replyTo = null) {
+  async sendMessage(receiverId, content, replyTo = null, type = 'text', audioUrl = null, duration = 0) {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
         // Queue message if offline
-        const queuedMessage = { receiverId, content, replyTo, resolve, reject };
+        const queuedMessage = { receiverId, content, replyTo, type, audioUrl, duration, resolve, reject };
         this.messageQueue.push(queuedMessage);
         reject(new Error('Socket not connected - message queued'));
         return;
@@ -86,6 +86,9 @@ class SocketService {
         receiverId,
         content,
         replyTo,
+        type,
+        audioUrl,
+        duration,
         timestamp: new Date(),
       };
 
@@ -101,7 +104,7 @@ class SocketService {
   flushMessageQueue() {
     while (this.messageQueue.length > 0) {
       const queuedMessage = this.messageQueue.shift();
-      this.sendMessage(queuedMessage.receiverId, queuedMessage.content, queuedMessage.replyTo)
+      this.sendMessage(queuedMessage.receiverId, queuedMessage.content, queuedMessage.replyTo, queuedMessage.type, queuedMessage.audioUrl, queuedMessage.duration)
         .then(queuedMessage.resolve)
         .catch(queuedMessage.reject);
     }

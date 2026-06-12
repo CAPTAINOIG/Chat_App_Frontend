@@ -42,6 +42,7 @@ const Chat = () => {
     setPinnedMessage,
     fetchMessages,
     sendMessage,
+    sendVoiceMessage,
     deleteMessage,
     pinMessage,
     unpinMessage,
@@ -88,17 +89,14 @@ const Chat = () => {
   // Initialize socket listeners
   useEffect(() => {
     if (!userId || !token) return;
-
     // Connect socket first
     setIsConnecting(true);
-    console.log('🔌 Chat.jsx: Connecting socket...');
     const socketInstance = socketService.connect(userId, token);
     setSocket(socketInstance);
     setIsConnected(socketService.isConnected());
     
     // Wait a bit for socket to stabilize, then initialize call service listeners
     const initCallListenersTimer = setTimeout(() => {
-      console.log('🔌 Chat.jsx: Socket stabilized, initializing call service listeners...');
       callService.ensureSocketListenersInitialized();
     }, 500);
 
@@ -676,6 +674,8 @@ const Chat = () => {
                     replyMessage={replyMessage}
                     setReplyMessage={setReplyMessage}
                     isSending={isSending}
+                    sendVoiceMessage={sendVoiceMessage}
+                    receiverId={receiverId}
                   />
                 </div>
               </div>

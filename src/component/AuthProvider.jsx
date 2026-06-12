@@ -45,8 +45,7 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth();
   }, []);
-
-  console.log('🔐 AuthProvider state:', { user, token, userId: user?._id, username: user?.username });
+  // console.log('🔐 AuthProvider state:', { user, token, userId: user?._id, username: user?.username });
   
   const value = {
     // State

@@ -1,33 +1,41 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ForwardMessage from './ForwardMessage';
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { motion } from 'framer-motion';
+import user1 from "../assets/image/user1.png";
+import useAuthStore from '../store/auth';
 
 const Message = ({
-    msg,
-    userId,
-    selectedUser,
-    openToggle,
-    selectedMsg,
-    handleToggle,
-    data,
-    handleAction,
-    openForwardToggle,
-    selectedToggle,
-    forwardTo,
-    handleForwardTo,
-    forwardMessage,
-    setOpenForwardToggle,
-    scrollToMessage,
-    handleForwardClick,
-    filteredUsers,
-    setFilteredUsers,
-    setForwardTo, 
-    users,
-    isDeleting = false,
-    isPinning = false,
+  msg,
+  userId,
+  selectedUser,
+  openToggle,
+  selectedMsg,
+  handleToggle,
+  data,
+  handleAction,
+  openForwardToggle,
+  selectedToggle,
+  forwardTo,
+  handleForwardTo,
+  forwardMessage,
+  setOpenForwardToggle,
+  scrollToMessage,
+  handleForwardClick,
+  filteredUsers,
+  setFilteredUsers,
+  setForwardTo,
+  users,
+  isDeleting = false,
+  isPinning = false,
 }) => {
+  const user = useAuthStore((state) => state.user)
   const menuRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(msg.duration || 0);
+  const audioRef = useRef(null);
+
 
   // Handle both populated objects and string IDs
   const getSenderId = (msg) => {
@@ -77,14 +85,55 @@ const Message = ({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [openToggle, selectedMsg, msg?.messageId, handleToggle]);
-  
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const formatAudioTime = (seconds) => {
+    if (isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
+
+  // Generate waveform bars
+  const waveformBars = Array.from({ length: 40 }, (_, i) => {
+    const height = 10 + Math.random() * 20;
+    return { id: i, height };
+  });
+
   return (
     <div className={`flex group mb-2 px-1 sm:px-2 mt-20 ${isSender ? 'justify-end' : 'justify-start'}`}>
-      <div 
+      <div
         className={`
           relative p-2 sm:p-3 rounded-2xl max-w-[85%] sm:max-w-[70%] min-w-[120px] shadow-md
-          ${isSender 
-            ? 'bg-primary-600 text-white' 
+          ${isSender
+            ? 'bg-surface-800/95 text-white'
             : 'bg-surface-700 text-surface-50'
           }
         `}
@@ -96,14 +145,64 @@ const Message = ({
         }}
       >
         <div className="flex gap-1 sm:gap-2 items-start px-1">
-          <strong className="text-xs sm:text-sm flex-shrink-0">
-            {isSender ? 'You' : (
-              (typeof msg.senderId === 'object' && msg.senderId?.username) ||
-              selectedUser?.username || 
-              'Unknown'
-            )}:
-          </strong>
-          <p className="flex-1 text-sm sm:text-base break-words">{msg.content}</p>
+          {msg.type === 'voice' ? (
+            <div className="flex items-center gap-3 w-full">
+              <button
+                onClick={togglePlay}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all flex-shrink-0"
+              >
+                {isPlaying ? (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
+              </button>
+              <div className="flex-1 flex flex-col gap-1">
+                <div className="flex items-center gap-1 w-full">
+                  {waveformBars.map((bar, index) => {
+                    const progress = duration > 0 ? (currentTime / duration) : 0;
+                    const isActive = index / waveformBars.length < progress;
+                    return (
+                      <div
+                        key={bar.id}
+                        className="w-1 rounded-full"
+                        style={{
+                          height: `${bar.height}px`,
+                          backgroundColor: isActive ? 'white' : 'rgba(255, 255, 255, 0.4)',
+                          animation: isPlaying ? `wave-${index % 2} 0.5s ease-in-out infinite` : 'none',
+                          animationDelay: `${index * 0.03}s`,
+                        }}
+                      />
+                    );
+                  })}
+                  <div> 
+                    <img
+                    className="w-10 h-10 rounded-full border-4 border-white object-cover"
+                    src={user?.profilePicture || user1}
+                    alt="Profile"
+                  />
+                  </div>
+                </div>
+                <div className="flex justify-between text-xs opacity-80">
+                  <span>{formatAudioTime(currentTime)}</span>
+                  <span>{formatAudioTime(duration)}</span>
+                </div>
+              </div>
+              <audio
+                ref={audioRef}
+                src={msg.audioUrl}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={handleEnded}
+                onLoadedMetadata={handleLoadedMetadata}
+              />
+            </div>
+          ) : (
+            <p className="flex-1 text-sm sm:text-base break-words">{msg.content}</p>
+          )}
         </div>
         <div className="flex justify-between items-center mt-1">
           <em className="text-xs opacity-70">
@@ -123,9 +222,8 @@ const Message = ({
         {msg.replyTo && (
           <div
             onClick={() => scrollToMessage(msg?._id)}
-            className={`reply-info p-2 border-l-4 ${
-              isSender ? 'border-accent-400 bg-primary-700' : 'border-primary-400 bg-surface-800'
-            } text-sm mb-2 mt-2 rounded cursor-pointer hover:opacity-80 transition-opacity`}
+            className={`reply-info p-2 border-l-4 ${isSender ? 'border-accent-400 bg-primary-700' : 'border-primary-400 bg-surface-800'
+              } text-sm mb-2 mt-2 rounded cursor-pointer hover:opacity-80 transition-opacity`}
           >
             <span className="opacity-70">Replying to:</span> <span className="font-semibold">{msg?.replyTo}</span>
           </div>
@@ -158,25 +256,24 @@ const Message = ({
             className={`
               absolute z-30 min-w-[160px] bg-surface-800/95 backdrop-blur-md border border-surface-600/50 
               rounded-xl shadow-2xl overflow-hidden
-              ${isSender 
-                ? 'right-0 top-full mt-2' 
+              ${isSender
+                ? 'right-0 top-full mt-2'
                 : 'left-0 top-full mt-2'
               }
             `}
           >
             {data?.map((item, index) => {
-              const isActionLoading = 
-                (item?.text === 'Delete' && isDeleting) || 
+              const isActionLoading =
+                (item?.text === 'Delete' && isDeleting) ||
                 ((item?.text === 'Pin' || item?.text === 'Unpin') && isPinning);
-              
+
               return (
                 <div
                   key={index}
-                  className={`flex items-center space-x-3 px-4 py-3 transition-colors text-surface-50 text-sm border-b border-surface-700/30 last:border-b-0 ${
-                    isActionLoading 
-                      ? 'cursor-not-allowed opacity-50' 
+                  className={`flex items-center space-x-3 px-4 py-3 transition-colors text-surface-50 text-sm border-b border-surface-700/30 last:border-b-0 ${isActionLoading
+                      ? 'cursor-not-allowed opacity-50'
                       : 'cursor-pointer hover:bg-surface-700/80'
-                  }`}
+                    }`}
                   onClick={() => !isActionLoading && handleAction(item?.text, msg.content, msg?.messageId, msg?.receiverId, msg?.senderId)}
                 >
                   <span className="text-surface-400 flex-shrink-0">

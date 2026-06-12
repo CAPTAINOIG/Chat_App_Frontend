@@ -23,6 +23,9 @@ const ENDPOINTS = {
   FETCH_PICTURE: `${API_BASE}/fetchPicture`,
   UPDATE_PROFILE: `${API_BASE}/updateProfile`,
   GET_UPDATE_PROFILE: `${API_BASE}/getUpdateProfile`,
+  
+  // Voice Notes
+  UPLOAD_VOICE_NOTE: `${API_BASE}/uploadVoiceNote`,
 };
 
 
@@ -116,6 +119,14 @@ export const updateProfile = async (userId, profileData) => {
 export const getProfileData = async (userId) => {
   const response = await axiosInstance.get(ENDPOINTS.GET_UPDATE_PROFILE, {
     params: { userId },
+  });
+  return response.data;
+};
+
+export const uploadVoiceNote = async (base64Audio, duration) => {
+  const response = await axiosInstance.post(ENDPOINTS.UPLOAD_VOICE_NOTE, {
+    base64Audio,
+    duration,
   });
   return response.data;
 };
