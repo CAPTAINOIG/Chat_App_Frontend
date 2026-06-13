@@ -25,13 +25,24 @@ import {
   validateImageFile,
   fileToBase64
 } from "../api/authApi";
+import Profile from "./Userprofile/Profile";
+import General from "./Userprofile/General";
+import Info from "./Userprofile/Info";
+import Settings from "./Userprofile/Settings";
+import Accounts from "./Userprofile/Accounts";
+import Storage from "./Userprofile/Storage";
+import Help from "./Userprofile/Help";
+import Shortcuts from "./Userprofile/Shortcuts";
+import Chats from "./Userprofile/Chats";
+import Notifications from "./Userprofile/Notifications";
+import VideoAudio from "./Userprofile/VideoAudio";
 
 const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
-  const { userId } = useAuth();
   const [openToggle, setOpenToggle] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [viewImage, setViewImage] = useState(false);
+  const [profile, setProfile] = useState('home')
 
   const dropdownRef = useRef(null);
 
@@ -81,7 +92,7 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setotherUsersToggle(false);
+        setOpenToggle(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -202,7 +213,7 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
       <Drawer
         title={selectedUser?.username}
         placement="left"
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => { setDrawerOpen(false); setProfile('home'); }}
         open={drawerOpen}
         width={400}
         styles={{
@@ -210,70 +221,17 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
           header: { backgroundColor: 'rgb(30 41 59)', color: 'white', borderBottom: '1px solid rgb(51 65 85)' }
         }}
       >
-        <div className="grid grid-cols-2 gap-4 p-4">
-          <div className="bg-surface-900 rounded-lg p-3">
-            {data?.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center space-x-3 p-3 cursor-pointer hover:bg-primary-600 rounded-lg transition-colors text-surface-200 mb-2"
-              >
-                {item?.icon}
-                <span className="text-sm font-medium">{item?.text}</span>
-              </div>
-            ))}
-          </div>
-          <div className="p-3 relative">
-            <div onClick={handleViewImage} className="cursor-pointer">
-              {image ? (
-                <div>
-                  <img
-                    className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-surface-700"
-                    src={image}
-                    alt="Profile"
-                  />
-                </div>
-              ) : (
-                <div>
-                  <img
-                    className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-surface-700"
-                    src={user}
-                    alt="Profile"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="mt-4">
-              <p className="font-semibold text-xl text-center text-surface-50">
-                {selectedUser?.username}
-              </p>
-              <p className="text-gray-500 text-xs uppercase mt-2">About</p>
-              <p className="text-surface-300 text-sm mt-1">
-                {selectedUser?.about || "Astral Tech Academy|| Full stack web developer|| Sport Analyst|| Captain OIG"}
-              </p>
-              <p className="text-gray-500 text-xs uppercase mt-3">Phone number</p>
-              <p className="text-surface-300 text-sm mt-1">{selectedUser?.number || "Not provided"}</p>
-              <div className="border-t border-surface-700 mt-4"></div>
-            </div>
-
-            {viewImage && (
-              <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100]">
-                <div className="rounded-lg max-w-4xl max-h-[90vh] p-4 relative">
-                  <img
-                    className="w-full h-full object-contain rounded-lg"
-                    src={viewImage}
-                    alt="Full-size Profile"
-                  />
-                  <button
-                    onClick={() => setViewImage(null)}
-                    className="absolute top-4 right-4 h-12 w-12 hover:text-red-400 text-white bg-surface-800 hover:bg-surface-700 p-2 rounded-full transition-colors flex items-center justify-center text-xl font-bold"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        {profile === 'home' && (<Profile data={data} profile={profile} setProfile={setProfile} viewImage={viewImage} setViewImage={setViewImage} image={image} user={user} selectedUser={selectedUser} onBack={() => setProfile("home")} />)}
+        {profile === 'general' && <General onBack={() => setProfile("home")} /> }
+        {profile === 'shortcuts' && <Shortcuts onBack={() => setProfile("home")} /> }
+        {profile === 'account' && <Accounts onBack={() => setProfile("home")} /> }
+        {profile === 'settings' && <Settings onBack={() => setProfile("home")} /> }
+        {profile === 'info' && <Info onBack={() => setProfile("home")} />}
+        {profile === 'help' && <Help onBack={() => setProfile("home")} />}
+        {profile === 'storage' && <Storage onBack={() => setProfile("home")} />}
+        {profile === 'chats' && <Chats onBack={() => setProfile("home")} />}
+        {profile === 'notifications' && <Notifications onBack={() => setProfile("home")} />}
+        {profile === 'video & audio' && <VideoAudio onBack={() => setProfile("home")} />}
       </Drawer>
     </div>
   );
