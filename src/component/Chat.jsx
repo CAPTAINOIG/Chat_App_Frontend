@@ -3,13 +3,12 @@ import { FaReply, FaCopy, FaForward, FaThumbtack, FaTrashAlt } from "react-icons
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthProvider";
 import useAuthStore from "../store/auth";
+import useChatStore from "../store/chat";
 import { useMessages } from "../hooks/useMessages";
 import { SOCKET_EVENTS } from "../constants/socketEvents";
 import { getUsers } from "../api/authApi";
 import socketService from "../services/socket.service";
 import callService from "../services/call.service";
-
-// Components
 import UserList from "./UserList";
 import ChatInput from "./ChatInput";
 import MessageList from "./MessageList";
@@ -20,7 +19,7 @@ import CallComponent from "./CallComponent";
 const Chat = () => {
   const messageRefs = useRef({});
   const { userId, token, user } = useAuth();
-  
+  const { messagesByUser, addMessage, updateMessage, deleteMessage: deleteMessageFromStore, incrementUnread, resetUnread } = useChatStore();
   const getLastChattedUserId = useAuthStore((state) => state.getLastChattedUserId);
   const setLastChattedUserId = useAuthStore((state) => state.setLastChattedUserId);
   // Socket management
@@ -36,8 +35,6 @@ const Chat = () => {
 
   // Message management
   const {
-    messages,
-    setMessages,
     pinnedMessage,
     setPinnedMessage,
     fetchMessages,
@@ -53,7 +50,9 @@ const Chat = () => {
     isDeleting,
     isPinning,
   } = useMessages(userId, socketService);
-
+  
+  // Get messages for current receiver
+  
   // UI State
   const [message, setMessage] = useState("");
   const [users, setUsers] = useState([]);
@@ -72,7 +71,8 @@ const Chat = () => {
   const [accountOwner, setAccountOwner] = useState(user);
   const [image, setImage] = useState(null);
   
-  // Loading states
+  // check all the user messages and give me the one where id is the receiverId
+  const messages = messagesByUser[receiverId] || [];
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isConnecting, setIsConnecting] = useState(true);
 
@@ -142,41 +142,14 @@ const Chat = () => {
       }
     };
 
-    // Listen for new messages
-    const handleNewMessage = (message) => {
-      setMessages((prevMessages) => {
-        const exists = prevMessages.some(msg => msg.messageId === message.messageId);
-        if (exists) return prevMessages;
-        return [...prevMessages, message];
-      });
-    };
-
-    // Listen for received messages
-    const handleReceiveMessage = (msg) => {
-      setMessages((prevMessages) => {
-        // Remove any temporary messages with the same content and sender
-        const withoutTemp = prevMessages.filter(message => 
-          !(message.messageId.startsWith('temp-') && 
-            message.content === msg.content && 
-            message.senderId === msg.senderId)
-        );
-        
-        // Check if this message already exists (avoid duplicates)
-        const exists = withoutTemp.some(message => message.messageId === msg.messageId);
-        if (exists) {
-          return withoutTemp;
-        }
-        
-        return [...withoutTemp, msg];
-      });
-    };
-
     // Listen for message deletions
     const handleMessageDeleted = ({ messageId }) => {
-      setMessages((prevMessages) => {
-        const filtered = prevMessages.filter(message => message.messageId !== messageId);
-        return filtered;
-      });
+      // Find which user this message was with
+      for (const [otherUserId, msgs] of Object.entries(messagesByUser)) {
+        if (msgs.some(msg => msg.messageId === messageId)) {
+          deleteMessageFromStore(otherUserId, messageId);
+        }
+      }
     };
 
     // Set up ALL listeners
@@ -188,14 +161,9 @@ const Chat = () => {
     socketService.on('getUsersResponse', handleOnlineUsersUpdate);
 
     socketService.on(SOCKET_EVENTS.GET_USERS, handleGetUsers);
-    socketService.on(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
-    socketService.on(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
     
     // Listen for message deletions (backend uses 'messageDeleted')
     socketService.on('messageDeleted', handleMessageDeleted);
-    
-    // Also listen for the message being echoed back (common in chat systems)
-    socketService.on('chat message', handleReceiveMessage);
     
     socketService.on('userOnline', (data) => {
     });
@@ -257,7 +225,6 @@ const Chat = () => {
     const lastChattedUserId = getLastChattedUserId();
     if (lastChattedUserId) {
       setReceiverId(lastChattedUserId);
-      
       // Find and set selected user
       socketService.emit(SOCKET_EVENTS.GET_USERS, { token });
     }
@@ -266,10 +233,7 @@ const Chat = () => {
       clearTimeout(fallbackTimer);
       clearTimeout(initCallListenersTimer);
       socketService.off(SOCKET_EVENTS.GET_USERS, handleGetUsers);
-      socketService.off(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
-      socketService.off(SOCKET_EVENTS.RECEIVE_MESSAGE, handleReceiveMessage);
       socketService.off('messageDeleted', handleMessageDeleted);
-      socketService.off('chat message', handleReceiveMessage);
       
       // Clean up all the new online user listeners
       socketService.off(SOCKET_EVENTS.UPDATE_ONLINE_USERS, handleOnlineUsersUpdate);
@@ -326,45 +290,69 @@ const Chat = () => {
     if (!socket) return;
 
     const handleMessageStatusUpdate = (update) => {
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.messageId === update.messageId 
-            ? { ...msg, status: update.status }
-            : msg
-        )
-      );
+      // Find which user this message is with
+      for (const [otherUserId, msgs] of Object.entries(messagesByUser)) {
+        if (msgs.some(msg => msg.messageId === update.messageId)) {
+          updateMessage(otherUserId, update.messageId, { status: update.status });
+        }
+      }
     };
 
-    const handleReceiveMessage = (message) => {
-      setMessages((prevMessages) => {
-        // Remove any temporary messages with the same content and sender
-        const withoutTemp = prevMessages.filter(msg => 
-          !(msg.messageId.startsWith('temp-') && 
-            msg.content === message.content && 
-            msg.senderId === message.senderId)
-        );
-        
-        // Check if this message already exists (avoid duplicates)
-        const exists = withoutTemp.some(msg => msg.messageId === message.messageId);
-        if (exists) return withoutTemp;
-        
-        // Auto-mark as read when received (optional)
-        if (socketService.markMessageAsRead) {
-          socketService.markMessageAsRead(message.messageId);
+    const handleReceiveMessage = (msg) => {
+      console.log("📥 handleReceiveMessage (in useEffect) called with:", msg);
+      
+      // Extract sender and receiver IDs - handle case where they are objects with _id
+      const senderId = typeof msg.senderId === 'object' 
+        ? String(msg.senderId._id || msg.senderId.id) 
+        : String(msg.senderId);
+      const receiverIdFromMsg = typeof msg.receiverId === 'object' 
+        ? String(msg.receiverId._id || msg.receiverId.id) 
+        : String(msg.receiverId);
+      
+      const otherUserId = senderId === String(userId) 
+        ? receiverIdFromMsg 
+        : senderId;
+      console.log("📥 otherUserId (in useEffect):", otherUserId);
+      
+      const currentMessages = messagesByUser[otherUserId] || [];
+      console.log("📥 currentMessages (in useEffect):", currentMessages);
+      
+      // Remove any temporary messages with the same content and sender
+      const withoutTemp = currentMessages.filter(message => 
+        !(message.messageId.startsWith('temp-') && 
+        (message.type === 'voice' 
+          ? (message.audioUrl === msg.audioUrl)
+          : message.content === msg.content) && 
+        (typeof message.senderId === 'object' 
+          ? (message.senderId._id || message.senderId.id) === senderId 
+          : message.senderId === senderId)
+      ));
+      
+      // Check if this message already exists
+      const exists = withoutTemp.some(message => message.messageId === msg.messageId);
+      console.log("📥 exists (in useEffect):", exists);
+      
+      if (!exists) {
+        console.log("📥 Adding message (in useEffect)!", otherUserId, { ...msg, status: 'delivered' });
+        addMessage(otherUserId, { ...msg, status: 'delivered' });
+        // If we're not currently chatting with this user, increment unread count
+        if (otherUserId !== String(receiverId) && senderId === otherUserId) {
+          console.log("📥 Incrementing unread count for:", otherUserId);
+          incrementUnread(otherUserId);
         }
-        
-        return [...withoutTemp, { ...message, status: 'delivered' }];
-      });
+      }
     };
 
     socketService.on('messageStatusUpdate', handleMessageStatusUpdate);
     socketService.on('receiveMessage', handleReceiveMessage);
+    socketService.on('chat message', handleReceiveMessage);
 
     return () => {
       socketService.off('messageStatusUpdate', handleMessageStatusUpdate);
       socketService.off('receiveMessage', handleReceiveMessage);
+      socketService.off('chat message', handleReceiveMessage);
     };
-  }, [socket, setMessages]);
+  }, [socket, messagesByUser, updateMessage, addMessage, userId, incrementUnread, receiverId]);
 
   // Typing indicators
   useEffect(() => {
@@ -399,6 +387,7 @@ const Chat = () => {
     setSelectedUser(user);
     setLastChattedUserId(user._id);
     fetchMessages(user._id);
+    resetUnread(user._id);
     setOpenForwardToggle(false);
   };
 
@@ -487,7 +476,7 @@ const Chat = () => {
   };
 
   const handleDelete = async (messageId) => {
-    if (await deleteMessage(messageId)) {
+    if (await deleteMessage(messageId, receiverId)) {
       setOpenToggle(false);
     }
   };
@@ -525,8 +514,8 @@ const Chat = () => {
     setFilteredUsers(filtered);
   };
 
-  const forwardMessage = (username, receiverId) => {
-    if (forwardMessageHook(selectedToggle, receiverId, username)) {
+  const forwardMessage = (username, targetUserId) => {
+    if (forwardMessageHook(selectedToggle, targetUserId, username, receiverId)) {
       setOpenForwardToggle(false);
       setForwardTo("");
       setFilteredUsers([]);

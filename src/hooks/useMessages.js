@@ -10,9 +10,17 @@ import {
   uploadVoiceNote,
   handleApiError
 } from '../api/authApi';
+import useChatStore from '../store/chat';
 
 export const useMessages = (userId, socket) => {
-  const [messages, setMessages] = useState([]);
+  const {
+    messagesByUser,
+    setMessagesForUser,
+    addMessage,
+    updateMessage,
+    deleteMessage: deleteMessageFromStore,
+  } = useChatStore();
+  
   const [pinnedMessage, setPinnedMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -22,7 +30,7 @@ export const useMessages = (userId, socket) => {
 
   // Fetch messages for a specific user
   const fetchMessages = useCallback(async (senderId) => {
-    setMessages([]);
+    console.log("📤 fetchMessages called for senderId:", senderId);
     setIsLoading(true);
     // Clear deleted messages cache when fetching new conversation
     setDeletedMessageIds(new Set());
@@ -39,24 +47,20 @@ export const useMessages = (userId, socket) => {
       } else if (Array.isArray(response)) {
         messages = response;
       }
-      
-      // Filter out deleted messages (both by isDeleted flag and local cache)
-      const activeMessages = messages.filter(msg => 
-        !msg.isDeleted && !deletedMessageIds.has(msg.messageId)
-      );
-      setMessages(activeMessages);
+      const activeMessages = messages.filter(msg => !msg.isDeleted && !deletedMessageIds.has(msg.messageId));
+      console.log("📤 setting messagesForUser!", senderId, activeMessages);
+      setMessagesForUser(senderId, activeMessages);
     } catch (error) {
       toast.error("Failed to fetch messages");
     } finally {
       setIsLoading(false);
     }
-  }, [userId, deletedMessageIds]);
+  }, [userId, deletedMessageIds, setMessagesForUser]);
 
   const sendMessage = useCallback(async (content, receiverId, replyMessage = "") => {
     if (!content.trim() || !receiverId || !socket) {
       return false;
     }
-    
     setIsSending(true);
     // Generate a temporary message ID for immediate display
     const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -70,48 +74,34 @@ export const useMessages = (userId, socket) => {
         timestamp: new Date(),
         status: 'sending'
       };
-      setMessages((prevMessages) => [...prevMessages, tempMessage]);
-      // Send via improved socket service
+      addMessage(receiverId, tempMessage);
       const result = await socket.sendMessage(receiverId, content.trim(), replyMessage);
       // Update the temporary message with the real message ID
-      setMessages((prevMessages) => 
-        prevMessages.map(msg => 
-          msg.messageId === tempMessageId 
-            ? { ...msg, messageId: result.messageId, status: 'sent' }
-            : msg
-        )
-      );
+      updateMessage(receiverId, tempMessageId, { messageId: result.messageId, status: 'sent' });
       return true;
     } catch (error) {
-      // Remove the failed message from local state
-      setMessages((prevMessages) => 
-        prevMessages.filter(msg => msg.messageId !== tempMessageId)
-      );
+      deleteMessageFromStore(receiverId, tempMessageId);
       toast.error("Failed to send message");
       return false;
     } finally {
       setIsSending(false);
     }
-  }, [userId, socket, setMessages]);
+  }, [userId, socket, addMessage, updateMessage, deleteMessageFromStore]);
 
   // Delete a message
-  const deleteMessage = useCallback(async (messageId) => {
-    if (!messageId) {
+  const deleteMessage = useCallback(async (messageId, receiverId) => {
+    if (!messageId || !receiverId) {
       toast.error("Invalid message id");
       return false;
     }
     setIsDeleting(true);
     try {
       const response = await deleteMessageApi(messageId);
-      console.log(response)
       toast.success(response.message || "Message deleted successfully");
       // Add to deleted messages cache
       setDeletedMessageIds(prev => new Set([...prev, messageId]));
-      // Remove from local state immediately
-      setMessages(prev => {
-        const filtered = prev.filter(item => item.messageId !== messageId);
-        return filtered;
-      });
+      // Remove from store
+      deleteMessageFromStore(receiverId, messageId);
       return true;
     } catch (error) {
       console.log(error)
@@ -120,7 +110,7 @@ export const useMessages = (userId, socket) => {
     } finally {
       setIsDeleting(false);
     }
-  }, [setMessages]);
+  }, [deleteMessageFromStore]);
 
     // Fetch pinned messages
   const fetchPinnedMessages = useCallback(async (senderId, receiverId) => {
@@ -188,12 +178,13 @@ export const useMessages = (userId, socket) => {
   }, []);
 
   // Forward a message
-  const forwardMessage = useCallback((messageId, targetUserId, targetUsername) => {
+  const forwardMessage = useCallback((messageId, targetUserId, targetUsername, receiverId) => {
     if (!targetUserId || !messageId || !socket) {
       toast.error("Please select a user to forward to");
       return false;
     }
 
+    const messages = messagesByUser[receiverId] || [];
     const messageToForward = messages.find(msg => msg.messageId === messageId);
     if (!messageToForward) {
       toast.error("Message not found");
@@ -212,6 +203,7 @@ export const useMessages = (userId, socket) => {
 
     try {
       socket.emit("chat message", payload);
+      addMessage(targetUserId, payload);
       toast.success(`Message forwarded to ${targetUsername}`);
       return true;
     } catch (error) {
@@ -219,7 +211,7 @@ export const useMessages = (userId, socket) => {
       toast.error("Failed to forward message");
       return false;
     }
-  }, [messages, userId, socket]);
+  }, [messagesByUser, userId, socket, addMessage]);
 
   // Send a voice message
   const sendVoiceMessage = useCallback(async (audioBlob, duration, receiverId, replyMessage = "") => {
@@ -255,36 +247,27 @@ export const useMessages = (userId, socket) => {
         status: 'sending'
       };
       
-      setMessages((prevMessages) => [...prevMessages, tempMessage]);
+      addMessage(receiverId, tempMessage);
       
       // Send via socket
       const result = await socket.sendMessage(receiverId, null, replyMessage, 'voice', uploadResult.data.audioUrl, uploadResult.data.duration);
       
       // Update the temporary message with the real message ID
-      setMessages((prevMessages) => 
-        prevMessages.map(msg => 
-          msg.messageId === tempMessageId 
-            ? { ...msg, messageId: result.messageId, status: 'sent' }
-            : msg
-        )
-      );
+      updateMessage(receiverId, tempMessageId, { messageId: result.messageId, status: 'sent' });
       
       return true;
     } catch (error) {
       // Remove the failed message from local state
-      setMessages((prevMessages) => 
-        prevMessages.filter(msg => msg.messageId !== tempMessageId)
-      );
+      deleteMessageFromStore(receiverId, tempMessageId);
       toast.error('Failed to send voice note');
       return false;
     } finally {
       setIsSending(false);
     }
-  }, [userId, socket, setMessages]);
+  }, [userId, socket, addMessage, updateMessage, deleteMessageFromStore]);
 
   return {
-    messages,
-    setMessages,
+    messagesByUser,
     pinnedMessage,
     setPinnedMessage,
     fetchMessages,

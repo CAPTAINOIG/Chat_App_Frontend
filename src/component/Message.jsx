@@ -266,7 +266,6 @@ const Message = ({
               const isActionLoading =
                 (item?.text === 'Delete' && isDeleting) ||
                 ((item?.text === 'Pin' || item?.text === 'Unpin') && isPinning);
-
               return (
                 <div
                   key={index}

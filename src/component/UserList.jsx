@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faEdit, faEye } from "@fortawesome/free-solid-svg-icons";
 import { FiMonitor } from "react-icons/fi";
 import { MdOutlineAccountCircle } from "react-icons/md";
-import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
+import { BsChatDots } from "react-icons/bs";
 import { CiEdit, CiSettings, CiVideoOn } from "react-icons/ci";
 import {
   IoIosHelpCircleOutline,
@@ -18,6 +18,7 @@ import { GrStorage } from "react-icons/gr";
 import { TbTableShortcut } from "react-icons/tb";
 import { toast } from "sonner";
 import { useAuth } from "./AuthProvider";
+import useChatStore from "../store/chat";
 import { 
   uploadProfilePicture, 
   fetchProfilePicture, 
@@ -30,6 +31,7 @@ import {
 
 const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) => {
   const { userId, logout } = useAuth();
+  const { lastMessageByUser, unreadCounts, resetUnread } = useChatStore();
   const [image, setImage] = useState(null);
   const [openToggle, setOpenToggle] = useState(false);
   const [editToggle, setEditToggle] = useState(false);
@@ -53,7 +55,7 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
       text: "Account",
     },
     {
-      icon: <IoChatbubbleEllipsesOutline />,
+      icon: <BsChatDots  />,
       text: "Chats",
     },
     {
@@ -214,11 +216,28 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
           </div>
         ) : users.length > 0 ? (
           users.map((item, i) => {
+            const lastMsg = lastMessageByUser[item._id || item.id];
+            const unread = unreadCounts[item._id || item.id] || 0;
+            const formatLastMessage = () => {
+              if (!lastMsg) return "No messages yet";
+              if (lastMsg.type === "voice") return "🎤 Voice message";
+              return lastMsg.content;
+            };
+            
+            const formatMessageTime = () => {
+              if (!lastMsg?.timestamp) return "";
+              const date = new Date(lastMsg.timestamp);
+              return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            };
+            
             return (
               <div
                 key={i}
                 className="p-3 cursor-pointer hover:bg-primary-600 hover:text-white text-surface-200 rounded-lg bg-surface-900 border border-surface-700 transition-all"
-                onClick={() => handleUserClick(item)}
+                onClick={() => {
+                  handleUserClick(item);
+                  resetUnread(item._id || item.id);
+                }}
               >
                 <div className="flex items-center gap-3">
                   <div className="relative flex-shrink-0">
@@ -240,12 +259,24 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="font-medium text-sm sm:text-base truncate block">
-                      {item?.username || "Unknown User"}
-                    </span>
-                    {item.online && (
-                      <span className="text-xs text-accent-400">Online</span>
-                    )}
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-medium text-sm sm:text-base truncate block">
+                        {item?.username || "Unknown User"}
+                      </span>
+                      <span className="text-xs text-surface-400 ml-2">
+                        {formatMessageTime()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs text-surface-400 truncate">
+                        {formatLastMessage()}
+                      </span>
+                      {unread > 0 && (
+                        <span className="ml-2 w-5 h-5 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-semibold">
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
