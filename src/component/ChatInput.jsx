@@ -1,6 +1,7 @@
 import EmojiPicker from "emoji-picker-react";
 import React, { useRef, useState, useEffect } from "react";
 import { FaTrash } from "react-icons/fa";
+import { formatTimey, waveformBars } from "./utils";
 
 const ChatInput = ({
   handleSubmit,
@@ -108,18 +109,6 @@ const ChatInput = ({
     mediaRecorder.stop();
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
-  };
-
-  // Generate fake waveform bars
-  const waveformBars = Array.from({ length: 20 }, (_, i) => {
-    const height = Math.max(10, Math.random() * 40);
-    return { id: i, height };
-  });
-
   return (
     <form
       className="p-4 bg-surface-800 border-t border-surface-700 fixed w-full -bottom-1 shadow-lg"
@@ -140,7 +129,7 @@ const ChatInput = ({
           {/* Recording Indicator and Timer */}
           <div className="flex items-center gap-3 flex-1">
             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-            <span className="text-white text-lg font-medium">{formatTime(recordingTime)}</span>
+            <span className="text-white text-lg font-medium">{formatTimey(recordingTime)}</span>
             
             {/* Waveform Animation */}
             <div className="flex items-center gap-1 ml-4">

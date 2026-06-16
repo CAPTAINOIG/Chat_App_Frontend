@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { FiMonitor } from "react-icons/fi";
 import { MdOutlineAccountCircle } from "react-icons/md";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
-import { useAuth } from "./AuthProvider";
 import { CiSettings, CiVideoOn } from "react-icons/ci";
 import {
   IoIosHelpCircleOutline,
@@ -211,7 +210,7 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
       )}
 
       <Drawer
-        title={selectedUser?.username}
+        title={(selectedUser?.username).toUpperCase()}
         placement="left"
         onClose={() => { setDrawerOpen(false); setProfile('home'); }}
         open={drawerOpen}

@@ -331,7 +331,6 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
           ref={dropdownRef}
         >
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-0">
-            {/* Left sidebar menu */}
             <div className="bg-surface-900 rounded-l-2xl p-3 border-r border-surface-700">
               {data?.map((item, index) => (
                 <div
@@ -374,7 +373,6 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                   </button>
                 </div>
               </div>
-
               {/* Profile Name */}
               <div className="mb-4">
                 <label className="text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">

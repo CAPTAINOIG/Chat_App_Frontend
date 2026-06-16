@@ -10,12 +10,12 @@ const Profile = ({
   setProfile,
   profile
 }) => {
+  
   return (
     <div className="w-full h-full">
-      {/* Profile Picture Section */}
       <div
         onClick={() => setViewImage(image || user)}
-        className="w-full h-64 bg-gradient-to-b from-primary-600 to-primary-800 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+        className="w-full h-64 bg-gray-700 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
       >
         <img
           src={image || user}
@@ -23,8 +23,6 @@ const Profile = ({
           className="w-40 h-40 rounded-full border-4 border-white/20 shadow-lg object-cover"
         />
       </div>
-
-      {/* User Info Section */}
       <div className="p-6">
         <h2 className="text-2xl font-bold text-white mb-1">
           {selectedUser?.username}
@@ -32,16 +30,12 @@ const Profile = ({
         <p className="text-sm text-surface-300 mb-6">
           {selectedUser?.number || "Not provided"}
         </p>
-
-        {/* About Section */}
         <div className="border-b border-surface-700 pb-4 mb-6">
           <p className="text-xs text-surface-400 uppercase tracking-wider mb-2">About</p>
           <p className="text-surface-200 text-sm">
-            {selectedUser?.about || "Hey there! I'm using this app."}
+            {selectedUser?.aboutMe || "Hey there! I'm using this app."}
           </p>
         </div>
-
-        {/* Settings List */}
         <div className="space-y-1">
           {data?.map((item, index) => (
             <button
