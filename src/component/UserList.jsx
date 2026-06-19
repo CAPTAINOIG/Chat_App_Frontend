@@ -35,9 +35,9 @@ import Shortcuts from "./Userprofile/Shortcuts";
 import Accounts from "./Userprofile/Accounts";
 import Info from "./Userprofile/Info";
 import Help from "./Userprofile/Help";
-import Chats from "./userprofile/Chats";
-import Notifications from "./userprofile/Notifications";
-import VideoAudio from "./userprofile/VideoAudio";
+import Chats from "./Userprofile/Chats";
+import Notifications from "./Userprofile/Notifications";
+import VideoAudio from "./Userprofile/VideoAudio";
 
 const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) => {
   const { userId, logout } = useAuth();
