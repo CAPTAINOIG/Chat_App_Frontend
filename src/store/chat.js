@@ -21,7 +21,6 @@ const useChatStore = create(
 
       // Add a single message for a user
       addMessage: (userId, message) => {
-        console.log("➕ addMessage called:", userId, message);
         return set((state) => ({
           messagesByUser: {
             ...state.messagesByUser,

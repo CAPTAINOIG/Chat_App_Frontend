@@ -1,11 +1,25 @@
 import React, { useState } from "react";
 import { HiChevronLeft } from "react-icons/hi";
 import { Switch } from "antd";
+import { useUserStore } from "../../store/user";
+import socketService from "../../services/socket.service";
 
 const General = ({ onBack }) => {
+  const showOnline = useUserStore((state)=> state.showOnline);
+  console.log(showOnline)
+  const setShowOnline = useUserStore((state)=> state.setShowOnline);
+
+  const handleShowOnlineToggle = (status) => {
+    setShowOnline(status);
+    socketService.updateShowOnline(status);
+  //    updateProfile({
+  //   showOnline: status
+  // });
+  };
+
   const [theme, setTheme] = useState("dark");
   const [enterKey, setEnterKey] = useState(false);
-  const [showOnline, setShowOnline] = useState(true);
+      
 
   const generalSettings = [
     {
@@ -25,7 +39,7 @@ const General = ({ onBack }) => {
       title: "Show online status",
       description: "Let others see when you're online",
       toggle: showOnline,
-      onChange: setShowOnline
+      onChange: handleShowOnlineToggle
     }
   ];
 

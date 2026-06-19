@@ -15,6 +15,7 @@ import MessageList from "./MessageList";
 import ChatHeader from "./ChatHeader";
 import TypingIndicator from "./TypingIndicator";
 import CallComponent from "./CallComponent";
+import { useUserStore } from "../store/user";
 
 const Chat = () => {
   const messageRefs = useRef({});
@@ -22,6 +23,9 @@ const Chat = () => {
   const { messagesByUser, addMessage, updateMessage, deleteMessage: deleteMessageFromStore, incrementUnread, resetUnread } = useChatStore();
   const getLastChattedUserId = useAuthStore((state) => state.getLastChattedUserId);
   const setLastChattedUserId = useAuthStore((state) => state.setLastChattedUserId);
+  const setSelectedUser = useUserStore((state)=> state.setSelectedUser);
+  const selectedUser = useUserStore((state)=> state.selectedUser);
+
   // Socket management
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -57,7 +61,6 @@ const Chat = () => {
   const [message, setMessage] = useState("");
   const [users, setUsers] = useState([]);
   const [receiverId, setReceiverId] = useState("");
-  const [selectedUser, setSelectedUser] = useState(null);
   const [openToggle, setOpenToggle] = useState(false);
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);

@@ -46,46 +46,46 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
   const dropdownRef = useRef(null);
 
   const data = [
-    {
-      icon: <FiMonitor />,
-      text: "General",
-    },
-    {
-      icon: <MdOutlineAccountCircle />,
-      text: "Account",
-    },
-    {
-      icon: <IoChatbubbleEllipsesOutline />,
-      text: "Chats",
-    },
-    {
-      icon: <CiVideoOn />,
-      text: "Video & Audio",
-    },
-    {
-      icon: <IoMdNotificationsOutline />,
-      text: "Notifications",
-    },
-    {
-      icon: <GrStorage />,
-      text: "Storage",
-    },
-    {
-      icon: <IoMdInformationCircleOutline />,
-      text: "Info",
-    },
-    {
-      icon: <TbTableShortcut />,
-      text: "Shortcuts",
-    },
-    {
-      icon: <CiSettings />,
-      text: "Settings",
-    },
-    {
-      icon: <IoIosHelpCircleOutline />,
-      text: "Help",
-    },
+    // {
+    //   icon: <FiMonitor />,
+    //   text: "General",
+    // },
+    // {
+    //   icon: <MdOutlineAccountCircle />,
+    //   text: "Account",
+    // },
+    // {
+    //   icon: <IoChatbubbleEllipsesOutline />,
+    //   text: "Chats",
+    // },
+    // {
+    //   icon: <CiVideoOn />,
+    //   text: "Video & Audio",
+    // },
+    // {
+    //   icon: <IoMdNotificationsOutline />,
+    //   text: "Notifications",
+    // },
+    // {
+    //   icon: <GrStorage />,
+    //   text: "Storage",
+    // },
+    // {
+    //   icon: <IoMdInformationCircleOutline />,
+    //   text: "Info",
+    // },
+    // {
+    //   icon: <TbTableShortcut />,
+    //   text: "Shortcuts",
+    // },
+    // {
+    //   icon: <CiSettings />,
+    //   text: "Settings",
+    // },
+    // {
+    //   icon: <IoIosHelpCircleOutline />,
+    //   text: "Help",
+    // },
   ];
 
   useEffect(() => {
@@ -221,16 +221,6 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
         }}
       >
         {profile === 'home' && (<Profile data={data} profile={profile} setProfile={setProfile} viewImage={viewImage} setViewImage={setViewImage} image={image} user={user} selectedUser={selectedUser} onBack={() => setProfile("home")} />)}
-        {profile === 'general' && <General onBack={() => setProfile("home")} /> }
-        {profile === 'shortcuts' && <Shortcuts onBack={() => setProfile("home")} /> }
-        {profile === 'account' && <Accounts onBack={() => setProfile("home")} /> }
-        {profile === 'settings' && <Settings onBack={() => setProfile("home")} /> }
-        {profile === 'info' && <Info onBack={() => setProfile("home")} />}
-        {profile === 'help' && <Help onBack={() => setProfile("home")} />}
-        {profile === 'storage' && <Storage onBack={() => setProfile("home")} />}
-        {profile === 'chats' && <Chats onBack={() => setProfile("home")} />}
-        {profile === 'notifications' && <Notifications onBack={() => setProfile("home")} />}
-        {profile === 'video & audio' && <VideoAudio onBack={() => setProfile("home")} />}
       </Drawer>
     </div>
   );

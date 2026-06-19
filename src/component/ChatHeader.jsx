@@ -26,14 +26,15 @@ const ChatHeader = ({ selectedUser, image, setImage, pinnedMessage, setPinnedMes
             <p className="text-surface-50 font-semibold text-lg">
               Chatting with {selectedUser.username}
             </p>
-            <p className="text-surface-500 font-semibold text-sm"
-              // className={`ml-0 text-sm ${
-              //   selectedUser.online ? "text-accent-400" : "text-red-400"
-              // }`}
-            >
-              {/* ({selectedUser.online ? "Online" : "Offline"}) */}
-             last seen {formatTime(selectedUser.lastSeen)}
+            {selectedUser?.showOnline &&
+            <p 
+            className={`ml-0 text-sm ${
+              selectedUser.online ? "text-accent-400" : "text-surface-500 font-semibold text-sm"
+              }`}
+              >
+              {selectedUser.online ? "Online" : "last seen " + formatTime(selectedUser.lastSeen)}
             </p>
+            }
           </div>
         </div>
 

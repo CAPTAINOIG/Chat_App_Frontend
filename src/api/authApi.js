@@ -6,6 +6,9 @@ const ENDPOINTS = {
   // Authentication
   SIGNUP: `${API_BASE}/signup`,
   SIGNIN: `${API_BASE}/signin`,
+  FORGOT_PASSWORD: `${API_BASE}/forgot-password`,
+  RESET_PASSWORD: `${API_BASE}/reset-password`,
+
   DASHBOARD: `${API_BASE}/dashboard`,
   GOOGLE_AUTH: `${API_BASE}/googleAuth`,
   
@@ -38,6 +41,16 @@ export const signIn = async (user) => {
   const response = await axiosInstance.post(ENDPOINTS.SIGNIN, user);
   return response.data;
 };
+
+export const forgotPassword = async (email) => {
+  const response = await axiosInstance.post(ENDPOINTS.FORGOT_PASSWORD, email);
+  return response.data;
+};
+
+export const resetPassword = async (otp, password, newPassword) => {
+  const response = await axiosInstance.post(ENDPOINTS.RESET_PASSWORD, { otp, password, newPassword });
+  return response.data;
+}
 
 export const dashboard = async () => {
   const response = await axiosInstance.get(ENDPOINTS.DASHBOARD);

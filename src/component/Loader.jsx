@@ -21,7 +21,7 @@ const Loader = () => {
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-surface-300 text-lg font-semibold">
-              Loading ChatterBox...
+              Loading CaptainChat...
             </p>
           </div>
         )}

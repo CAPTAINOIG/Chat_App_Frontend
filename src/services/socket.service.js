@@ -3,6 +3,7 @@
  * Improved version with better reliability and message status
  */
 import io from 'socket.io-client';
+import { useUserStore } from '../store/user';
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -49,7 +50,8 @@ class SocketService {
 
   setupDefaultListeners(token) {
     this.socket.on('connect', () => {
-      this.socket.emit('user-online', this.userId);
+      const showOnline = useUserStore.getState().showOnline;
+      this.socket.emit('user-online', this.userId, showOnline);
       this.socket.emit('getUsers', { token });
       
       // Send queued messages
@@ -63,7 +65,8 @@ class SocketService {
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
-      this.socket.emit('user-online', this.userId);
+      const showOnline = useUserStore.getState().showOnline;
+      this.socket.emit('user-online', this.userId, showOnline);
       this.socket.emit('getUsers', { token });
       this.flushMessageQueue();
     });
@@ -101,7 +104,16 @@ class SocketService {
     });
   }
 
-  flushMessageQueue() {
+  /**
+   * Update show online status preference
+   */
+  updateShowOnline(showOnline) {
+    if (this.socket?.connected) {
+      this.socket.emit('update-show-online', { userId: this.userId, showOnline });
+    }
+  }
+
+  on(event, callback) {
     while (this.messageQueue.length > 0) {
       const queuedMessage = this.messageQueue.shift();
       this.sendMessage(queuedMessage.receiverId, queuedMessage.content, queuedMessage.replyTo, queuedMessage.type, queuedMessage.audioUrl, queuedMessage.duration)
@@ -112,10 +124,7 @@ class SocketService {
 
   startTyping(receiverId) {
     if (this.socket?.connected) {
-      this.socket.emit('typing', {
-        senderId: this.userId,
-        receiverId,
-      });
+      this.socket.emit('typing', {senderId: this.userId, receiverId});
     }
   }
 
@@ -150,7 +159,6 @@ class SocketService {
   on(event, callback) {
     if (this.socket) {
       // Socket exists, register listener now
-      console.log(`🔌 SocketService: Registering listener for event "${event}" (socket exists)`);
       this.socket.on(event, callback);
       if (!this.listeners.has(event)) {
         this.listeners.set(event, []);

@@ -34,7 +34,7 @@ const LandingPage = () => {
         >
           <FaComments className="text-primary-400 text-2xl" />
           <span className="text-xl font-bold tracking-tight text-surface-50">
-            Chatter<span className="text-primary-400">Box</span>
+            Captain<span className="text-primary-400">Chat</span>
           </span>
         </motion.div>
 
@@ -95,7 +95,7 @@ const LandingPage = () => {
       <section className="bg-surface-800 py-16 px-8">
         <div className="max-w-5xl mx-auto text-center">
           <h3 className="text-3xl font-bold mb-3 text-surface-50">
-            Why ChatterBox?
+            Why CaptainChat?
           </h3>
           <p className="text-surface-400 mb-10">
             Everything you need for seamless communication.
@@ -122,7 +122,7 @@ const LandingPage = () => {
 
       <footer className="text-center py-6 bg-surface-900 border-t border-surface-800">
         <p className="text-sm text-surface-500">
-          &copy; {new Date().getFullYear()} ChatterBox. All rights reserved.
+          &copy; {new Date().getFullYear()} CaptainChat. All rights reserved.
         </p>
       </footer>
     </div>

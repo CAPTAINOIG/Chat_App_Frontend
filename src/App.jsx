@@ -10,6 +10,8 @@ import LandingPage from './component/LandingPage'
 import { AuthProvider } from './component/AuthProvider'
 import ProtectedRoute from './component/ProtectedRoute'
 import ErrorBoundary from './component/ErrorBoundary'
+import ForgotPassword from './component/ForgotPassword'
+import ResetPassword from './component/ResetPassword'
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
             <Route path='/landingpage' element={<LandingPage />} />
             <Route path='/signup' element={<Signup />} />
             <Route path='/signin' element={<Signin />} />
+            <Route path='/forgot-password' element={<ForgotPassword/>} />
+            <Route path='/reset-password' element={<ResetPassword/>} />
             <Route 
               path='/dashboard' 
               element={
