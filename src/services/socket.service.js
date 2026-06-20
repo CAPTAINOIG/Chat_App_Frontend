@@ -1,9 +1,6 @@
-/**
- * Socket.io Service for Frontend
- * Improved version with better reliability and message status
- */
 import io from 'socket.io-client';
 import { useUserStore } from '../store/user';
+import { SOCKET_EVENTS } from '../constants/socketEvents';
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -104,12 +101,9 @@ class SocketService {
     });
   }
 
-  /**
-   * Update show online status preference
-   */
   updateShowOnline(showOnline) {
     if (this.socket?.connected) {
-      this.socket.emit('update-show-online', { userId: this.userId, showOnline });
+      this.socket.emit(SOCKET_EVENTS.UPDATE_SHOW_ONLINE, { userId: this.userId, showOnline });
     }
   }
 

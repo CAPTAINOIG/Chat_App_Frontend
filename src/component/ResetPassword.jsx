@@ -73,57 +73,57 @@ const ResetPassword = () => {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-900 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-900 p-6">
       <Toaster position="top-center" />
-      <div className="bg-surface-800 p-8 text-surface-50 rounded-2xl shadow-card border border-surface-700 w-full max-w-md">
+      <div className="bg-white dark:bg-surface-800 p-8 text-surface-900 dark:text-surface-50 rounded-2xl shadow-card border border-surface-200 dark:border-surface-700 w-full max-w-md">
         <h2 className="text-3xl font-bold mb-6 text-center">Reset Password</h2>
         {error && (
-          <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
         <form onSubmit={formik.handleSubmit}>
           <div className="mb-5">
-            <label htmlFor="otp" className="block font-semibold mb-2 text-sm text-surface-300">
+            <label htmlFor="otp" className="block font-semibold mb-2 text-sm text-surface-600 dark:text-surface-300">
               OTP Code
             </label>
             <input
               type="text"
-              placeholder="Enter 4-digit OTP"
-              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
+              placeholder="Enter 6-digit OTP"
+              className="px-4 py-3 w-full bg-surface-100 dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg text-surface-900 dark:text-surface-50 placeholder-surface-400 dark:placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="otp"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.otp}
             />
             {formik.touched.otp && formik.errors.otp && (
-              <span className="text-red-400 text-xs mt-1 block">
+              <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">
                 {formik.errors.otp}
               </span>
             )}
           </div>
           <div className="mb-5 relative">
-            <label htmlFor="password" className="block font-semibold mb-2 text-sm text-surface-300">
+            <label htmlFor="password" className="block font-semibold mb-2 text-sm text-surface-600 dark:text-surface-300">
               New Password
             </label>
             <input
               type={passwordVisible ? "text" : "password"}
               autoComplete="off"
-              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
+              className="px-4 py-3 w-full bg-surface-100 dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg text-surface-900 dark:text-surface-50 placeholder-surface-400 dark:placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="password"
-              placeholder="••••"
+              placeholder="••••••••"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.password}
             />
             {formik.touched.password && formik.errors.password && (
-              <span className="text-red-400 text-xs mt-1 block">
+              <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">
                 {formik.errors.password}
               </span>
             )}
             <span
               onClick={togglePasswordVisibility}
-              className="absolute top-[42px] right-4 cursor-pointer text-surface-400 hover:text-surface-200"
+              className="absolute top-[42px] right-4 cursor-pointer text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200"
             >
               {!passwordVisible ? (
                 <IoEyeSharp size={20} />
@@ -133,27 +133,27 @@ const ResetPassword = () => {
             </span>
           </div>
           <div className="mb-6 relative">
-            <label htmlFor="confirmPassword" className="block font-semibold mb-2 text-sm text-surface-300">
+            <label htmlFor="confirmPassword" className="block font-semibold mb-2 text-sm text-surface-600 dark:text-surface-300">
               Confirm New Password
             </label>
             <input
               type={confirmPasswordVisible ? "text" : "password"}
               autoComplete="off"
-              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
+              className="px-4 py-3 w-full bg-surface-100 dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg text-surface-900 dark:text-surface-50 placeholder-surface-400 dark:placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="confirmPassword"
-              placeholder="••••"
+              placeholder="••••••••"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.confirmPassword}
             />
             {formik.touched.confirmPassword && formik.errors.confirmPassword && (
-              <span className="text-red-400 text-xs mt-1 block">
+              <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">
                 {formik.errors.confirmPassword}
               </span>
             )}
             <span
               onClick={toggleConfirmPasswordVisibility}
-              className="absolute top-[42px] right-4 cursor-pointer text-surface-400 hover:text-surface-200"
+              className="absolute top-[42px] right-4 cursor-pointer text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200"
             >
               {!confirmPasswordVisible ? (
                 <IoEyeSharp size={20} />
@@ -170,9 +170,9 @@ const ResetPassword = () => {
             {loading ? <ClipLoader size={20} color="#ffffff" /> : "Reset Password"}
           </button>
         </form>
-        <p className="text-center text-sm mt-6 text-surface-400">
+        <p className="text-center text-sm mt-6 text-surface-600 dark:text-surface-400">
           Remember your password?{" "}
-          <a href="/signin" className="text-primary-400 hover:text-primary-300 font-semibold">
+          <a href="/signin" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
             Sign In
           </a>
         </p>

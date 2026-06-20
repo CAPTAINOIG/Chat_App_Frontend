@@ -2,6 +2,7 @@
 export const SOCKET_EVENTS = {
   // Emit events
   USER_ONLINE: "user-online",
+  UPDATE_SHOW_ONLINE: "update-show-online",
   GET_USERS: "getUsers",
   CHAT_MESSAGE: "chat message",
   TYPING: "typing",
@@ -22,6 +23,7 @@ export const SOCKET_EVENTS = {
   RECEIVE_MESSAGE: "receiveMessage",
   NEW_MESSAGE: "newMessage", 
   UPDATE_ONLINE_USERS: "update-online-users",
+  USER_STATUS_UPDATED: "user-status-updated",
   MESSAGE_DELETED: "messageDeleted",
 
   // Call events - Listen

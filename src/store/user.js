@@ -6,14 +6,13 @@ export const useUserStore = create(
     (set) => ({
       selectedUser: null,
       showOnline: true,
+      theme: 'system',
       // Actions
       setSelectedUser: (user) => set({ selectedUser: user }),
       setShowOnline: (status) => set({ showOnline: status }),
+      setTheme: (status) => set({ theme: status}),
       resetUser: () =>
-        set({
-          selectedUser: null,
-          showOnline: true,
-        }),
+        set({selectedUser: null, showOnline: true, theme: 'system'}),
     }),
     {
       name: "user-store",
@@ -21,6 +20,7 @@ export const useUserStore = create(
       partialize: (state) => ({
         selectedUser: state.selectedUser,
         showOnline: state.showOnline,
+        theme: state.theme,
       }),
     }
   )

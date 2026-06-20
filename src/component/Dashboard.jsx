@@ -42,8 +42,8 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-900">
-        <div className="text-surface-50 flex flex-col items-center gap-3">
+      <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-900">
+        <div className="text-surface-900 dark:text-surface-50 flex flex-col items-center gap-3">
           <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
           <p>Loading...</p>
         </div>
@@ -52,10 +52,10 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-900">
+    <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-900">
       <Toaster position="top-center" />
       <div
-        className="bg-surface-800 border border-surface-700 p-6 hover:bg-primary-600 hover:border-primary-500 cursor-pointer text-surface-50 rounded-2xl shadow-card transition-all"
+        className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 p-6 hover:bg-primary-600 hover:border-primary-500 cursor-pointer text-surface-900 dark:text-surface-50 rounded-2xl shadow-card transition-all"
         onClick={handleChat}
       >
         <p className="text-lg font-semibold">Start Chatting</p>

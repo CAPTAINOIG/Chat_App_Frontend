@@ -12,14 +12,14 @@ const Shortcuts = ({ onBack }) => {
 
   return (
     <div className="w-full h-full">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-surface-700 bg-surface-800">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800">
         <button
           onClick={onBack}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-700 text-white transition-colors"
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-900 dark:text-white transition-colors"
         >
           <HiChevronLeft size="24" />
         </button>
-        <h2 className="text-xl font-semibold text-white">Keyboard Shortcuts</h2>
+        <h2 className="text-xl font-semibold text-surface-900 dark:text-white">Keyboard Shortcuts</h2>
       </div>
 
       <div className="p-6">
@@ -27,14 +27,14 @@ const Shortcuts = ({ onBack }) => {
           {shortcuts.map((item, index) => (
             <div
               key={index}
-              className="flex items-center justify-between px-4 py-3 bg-surface-700/50 rounded-xl"
+              className="flex items-center justify-between px-4 py-3 bg-surface-100 dark:bg-surface-700/50 rounded-xl"
             >
-              <span className="text-surface-200">{item.action}</span>
+              <span className="text-surface-900 dark:text-surface-200">{item.action}</span>
               <div className="flex gap-1">
                 {item.keys.split(" + ").map((key, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1 bg-surface-600 text-white rounded text-sm font-mono"
+                    className="px-3 py-1 bg-surface-200 dark:bg-surface-600 text-surface-900 dark:text-white rounded text-sm font-mono"
                   >
                     {key}
                   </span>

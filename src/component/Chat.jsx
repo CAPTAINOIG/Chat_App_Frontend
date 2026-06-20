@@ -117,6 +117,36 @@ const Chat = () => {
       setOnlineUsers(processedOnlineUsers);
     };
 
+    // Handle user status updated event (when someone toggles their "show online" setting)
+    const handleUserStatusUpdated = (updatedUser) => {
+      if (updatedUser) {
+        const userIdStr = String(updatedUser._id || updatedUser.id);
+        // Update users list
+        setUsers(prevUsers => 
+          prevUsers.map(user => {
+            if (String(user._id || user.id) === userIdStr) {
+              return {
+                ...user,
+                online: updatedUser.online,
+              };
+            }
+            return user;
+          })
+        );
+        // Update onlineUsers list if needed
+        if (updatedUser.online) {
+          setOnlineUsers(prev => {
+            if (!prev.includes(userIdStr)) {
+              return [...prev, userIdStr];
+            }
+            return prev;
+          });
+        } else {
+          setOnlineUsers(prev => prev.filter(id => id !== userIdStr));
+        }
+      }
+    };
+
     // Get all users
     const getAllUsers = () => {
       socketService.emit(SOCKET_EVENTS.GET_USERS, { token });
@@ -162,7 +192,8 @@ const Chat = () => {
     socketService.on('updateOnlineUsers', handleOnlineUsersUpdate);
     socketService.on('online-users', handleOnlineUsersUpdate);
     socketService.on('getUsersResponse', handleOnlineUsersUpdate);
-
+    socketService.on(SOCKET_EVENTS.USER_STATUS_UPDATED, handleUserStatusUpdated);
+    socketService.on('user-status-updated', handleUserStatusUpdated);
     socketService.on(SOCKET_EVENTS.GET_USERS, handleGetUsers);
     
     // Listen for message deletions (backend uses 'messageDeleted')
@@ -244,6 +275,9 @@ const Chat = () => {
       socketService.off('updateOnlineUsers', handleOnlineUsersUpdate);
       socketService.off('online-users', handleOnlineUsersUpdate);
       socketService.off('getUsersResponse', handleOnlineUsersUpdate);
+      // Clean up user status update listener
+      socketService.off(SOCKET_EVENTS.USER_STATUS_UPDATED, handleUserStatusUpdated);
+      socketService.off('user-status-updated', handleUserStatusUpdated);
       
       socketService.off('userOnline');
       socketService.off('userOffline');
@@ -546,10 +580,10 @@ const Chat = () => {
         selectedUser={selectedUser}
       />
       {isConnecting && (
-        <div className="fixed inset-0 bg-surface-900/95 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-white/95 dark:bg-surface-900/95 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-surface-300 text-lg font-semibold">Connecting to chat...</p>
+            <p className="text-surface-700 dark:text-surface-300 text-lg font-semibold">Connecting to chat...</p>
           </div>
         </div>
       )}
@@ -559,7 +593,7 @@ const Chat = () => {
           ${selectedUser ? 'hidden lg:flex' : 'flex'} 
           flex-col
           w-full sm:w-80 lg:w-1/4 xl:w-1/5
-          border-r border-surface-700
+          border-r border-surface-200 dark:border-surface-700
           ${selectedUser ? 'lg:min-w-[300px]' : ''}
         `}>
           <UserList
@@ -575,7 +609,7 @@ const Chat = () => {
         <div className={`
           ${selectedUser ? 'flex' : 'hidden lg:flex'} 
           flex-col flex-1 
-          bg-surface-900/30 backdrop-blur-sm
+          bg-transparent dark:bg-surface-900/30
           relative overflow-hidden
         `}>
           {selectedUser ? (
@@ -583,7 +617,7 @@ const Chat = () => {
               {/* Mobile Back Button */}
               <button
                 onClick={() => setSelectedUser(null)}
-                className="lg:hidden absolute top-4 left-4 z-20 bg-surface-800/90 hover:bg-surface-700 text-surface-200 p-2 rounded-full transition-colors shadow-lg backdrop-blur-sm"
+                className="lg:hidden absolute top-4 left-4 z-20 bg-white/90 dark:bg-surface-800/90 hover:bg-surface-100 dark:hover:bg-surface-700 text-surface-900 dark:text-surface-200 p-2 rounded-full transition-colors shadow-lg backdrop-blur-sm"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -652,7 +686,7 @@ const Chat = () => {
               </div>
 
               {/* Chat Input */}
-              <div className="flex-shrink-0 bg-surface-900/95 backdrop-blur-sm border-t border-surface-700">
+              <div className="flex-shrink-0 bg-whatsapp-sidebar dark:bg-surface-900/95 border-t border-surface-200 dark:border-surface-700">
                 <div className="p-3 sm:p-4">
                   <ChatInput
                     handleSubmit={handleSubmit}
@@ -676,15 +710,15 @@ const Chat = () => {
             /* No Chat Selected State */
             <div className="flex items-center justify-center h-full p-6">
               <div className="text-center max-w-md">
-                <div className="w-16 h-16 mx-auto mb-4 bg-surface-700 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-16 h-16 mx-auto mb-4 bg-surface-200 dark:bg-surface-700 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-surface-600 dark:text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold text-surface-50 mb-2">
+                <h3 className="text-xl font-semibold text-surface-900 dark:text-surface-50 mb-2">
                   Welcome to Chat
                 </h3>
-                <p className="text-surface-400 text-sm sm:text-base">
+                <p className="text-surface-600 dark:text-surface-400 text-sm sm:text-base">
                   Select a conversation from the sidebar to start chatting
                 </p>
               </div>

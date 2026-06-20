@@ -60,31 +60,31 @@ const ForgotPassword = () => {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-900 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-900 p-6">
       <Toaster position="top-center" />
-      <div className="bg-surface-800 p-8 text-surface-50 rounded-2xl shadow-card border border-surface-700 w-full max-w-md">
+      <div className="bg-white dark:bg-surface-800 p-8 text-surface-900 dark:text-surface-50 rounded-2xl shadow-card border border-surface-200 dark:border-surface-700 w-full max-w-md">
         <h2 className="text-3xl font-bold mb-6 text-center">Forgot Password?</h2>
         {error && (
-          <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
         <form onSubmit={formik.handleSubmit}>
           <div className="mb-5">
-            <label htmlFor="email" className="block font-semibold mb-2 text-sm text-surface-300">
+            <label htmlFor="email" className="block font-semibold mb-2 text-sm text-surface-600 dark:text-surface-300">
               Enter Your Email Address
             </label>
             <input
               type="email"
               placeholder="jane@example.com"
-              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
+              className="px-4 py-3 w-full bg-surface-100 dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg text-surface-900 dark:text-surface-50 placeholder-surface-400 dark:placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="email"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.email}
             />
             {formik.touched.email && formik.errors.email && (
-              <span className="text-red-400 text-xs mt-1 block">
+              <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">
                 {formik.errors.email}
               </span>
             )}

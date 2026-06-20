@@ -25,15 +25,15 @@ const LandingPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-surface-900 text-surface-50 flex flex-col">
-      <header className="px-8 py-5 flex justify-between items-center border-b border-surface-800">
+    <div className="min-h-screen bg-surface-50 dark:bg-surface-900 text-surface-900 dark:text-surface-50 flex flex-col">
+      <header className="px-8 py-5 flex justify-between items-center border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-2"
         >
           <FaComments className="text-primary-400 text-2xl" />
-          <span className="text-xl font-bold tracking-tight text-surface-50">
+          <span className="text-xl font-bold tracking-tight text-surface-900 dark:text-surface-50">
             Captain<span className="text-primary-400">Chat</span>
           </span>
         </motion.div>
@@ -55,14 +55,14 @@ const LandingPage = () => {
           transition={{ delay: 0.1 }}
           className="max-w-xl"
         >
-          <span className="inline-block bg-primary-900 text-primary-300 text-xs font-semibold px-3 py-1 rounded-full mb-4 tracking-wide uppercase">
+          <span className="inline-block bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-300 text-xs font-semibold px-3 py-1 rounded-full mb-4 tracking-wide uppercase">
             Real-time chat
           </span>
-          <h2 className="text-5xl font-extrabold leading-tight mb-5 text-surface-50">
+          <h2 className="text-5xl font-extrabold leading-tight mb-5 text-surface-900 dark:text-surface-50">
             Connect Instantly,{" "}
             <span className="text-primary-400">Chat Freely</span>
           </h2>
-          <p className="text-lg text-surface-400 mb-8 leading-relaxed">
+          <p className="text-lg text-surface-600 dark:text-surface-400 mb-8 leading-relaxed">
             A seamless messaging experience with real-time chat, media sharing,
             and end-to-end encryption — all in one place.
           </p>
@@ -75,7 +75,7 @@ const LandingPage = () => {
             </button>
             <button
               onClick={() => navigate("/signup")}
-              className="border border-surface-600 hover:border-primary-400 hover:text-primary-300 transition-colors text-surface-300 px-7 py-3 rounded-full font-semibold"
+              className="border border-surface-300 dark:border-surface-600 hover:border-primary-400 hover:text-primary-400 dark:hover:text-primary-300 transition-colors text-surface-600 dark:text-surface-300 px-7 py-3 rounded-full font-semibold"
             >
               Create Account
             </button>
@@ -88,16 +88,16 @@ const LandingPage = () => {
           transition={{ delay: 0.2 }}
           src="https://images.unsplash.com/photo-1494253109108-2e30c049369b?q=80&w=2070&auto=format&fit=crop"
           alt="Chat Illustration"
-          className="max-w-xs md:max-w-md rounded-2xl shadow-2xl ring-1 ring-surface-700 object-cover"
+          className="max-w-xs md:max-w-md rounded-2xl shadow-2xl ring-1 ring-surface-300 dark:ring-surface-700 object-cover"
         />
       </section>
 
-      <section className="bg-surface-800 py-16 px-8">
+      <section className="bg-white dark:bg-surface-800 py-16 px-8">
         <div className="max-w-5xl mx-auto text-center">
-          <h3 className="text-3xl font-bold mb-3 text-surface-50">
+          <h3 className="text-3xl font-bold mb-3 text-surface-900 dark:text-surface-50">
             Why CaptainChat?
           </h3>
-          <p className="text-surface-400 mb-10">
+          <p className="text-surface-600 dark:text-surface-400 mb-10">
             Everything you need for seamless communication.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -107,21 +107,21 @@ const LandingPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * i }}
-                className="p-7 bg-surface-900 rounded-2xl shadow-card border border-surface-700 hover:border-primary-600 transition-colors text-left"
+                className="p-7 bg-surface-100 dark:bg-surface-900 rounded-2xl shadow-card border border-surface-200 dark:border-surface-700 hover:border-primary-600 transition-colors text-left"
               >
                 {f.icon}
-                <h4 className="text-lg font-semibold text-surface-50 mb-2">
+                <h4 className="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-2">
                   {f.title}
                 </h4>
-                <p className="text-surface-400 text-sm">{f.desc}</p>
+                <p className="text-surface-600 dark:text-surface-400 text-sm">{f.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <footer className="text-center py-6 bg-surface-900 border-t border-surface-800">
-        <p className="text-sm text-surface-500">
+      <footer className="text-center py-6 bg-surface-50 dark:bg-surface-900 border-t border-surface-200 dark:border-surface-800">
+        <p className="text-sm text-surface-500 dark:text-surface-500">
           &copy; {new Date().getFullYear()} CaptainChat. All rights reserved.
         </p>
       </footer>

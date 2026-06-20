@@ -111,16 +111,16 @@ const ChatInput = ({
 
   return (
     <form
-      className="p-4 bg-surface-800 border-t border-surface-700 fixed w-full -bottom-1 shadow-lg"
+      className="p-0"
       onSubmit={handleSubmit}
     >
       {isRecording ? (
-        <div className="flex items-center justify-between gap-4 bg-surface-900 rounded-lg p-4 border border-surface-700">
+        <div className="flex items-center justify-between gap-4 bg-surface-100 dark:bg-surface-900 rounded-lg p-4 border border-surface-300 dark:border-surface-700">
           {/* Cancel Button */}
           <button
             type="button"
             onClick={cancelRecording}
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-surface-700 hover:bg-surface-600 text-white transition-all"
+            className="flex items-center justify-center w-12 h-12 rounded-full bg-surface-300 dark:bg-surface-700 hover:bg-surface-400 dark:hover:bg-surface-600 text-surface-900 dark:text-white transition-all"
             title="Cancel"
           >
             <FaTrash className="w-6 h-6" />
@@ -129,14 +129,14 @@ const ChatInput = ({
           {/* Recording Indicator and Timer */}
           <div className="flex items-center gap-3 flex-1">
             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-            <span className="text-white text-lg font-medium">{formatTimey(recordingTime)}</span>
+            <span className="text-surface-900 dark:text-white text-lg font-medium">{formatTimey(recordingTime)}</span>
             
             {/* Waveform Animation */}
             <div className="flex items-center gap-1 ml-4">
               {waveformBars.map((bar) => (
                 <div
                   key={bar.id}
-                  className="w-1 bg-white/70 rounded-full"
+                  className="w-1 bg-surface-600/70 dark:bg-white/70 rounded-full"
                   style={{
                     height: `${bar.height}px`,
                     animation: isRecording ? 'wave 0.5s ease-in-out infinite' : 'none',
@@ -174,14 +174,14 @@ const ChatInput = ({
             😊
           </button>
 
-          <div className="w-full bg-surface-900 border border-surface-600 rounded-lg p-3 focus-within:border-primary-500 transition-colors">
+          <div className="w-full bg-surface-100 dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg p-3 focus-within:border-primary-500 transition-colors">
             {replyMessage && (
-              <div className="reply-indicator text-surface-50 p-2 bg-primary-600 rounded-lg mb-2 flex justify-between items-center">
+              <div className="reply-indicator text-white p-2 bg-primary-600 rounded-lg mb-2 flex justify-between items-center">
                 <p className="text-sm">Replying to: <span className="font-semibold">{replyMessage}</span></p>
                 <button
                   type="button"
                   onClick={() => setReplyMessage("")}
-                  className="text-surface-200 hover:text-red-400 rounded-full px-2 cursor-pointer transition-colors"
+                  className="text-surface-100 hover:text-red-400 rounded-full px-2 cursor-pointer transition-colors"
                 >
                   ✖
                 </button>
@@ -193,7 +193,7 @@ const ChatInput = ({
               value={message}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="w-full bg-transparent text-surface-50 placeholder-surface-500 outline-none"
+              className="w-full bg-transparent text-surface-900 dark:text-surface-50 placeholder-surface-600 dark:placeholder-surface-500 outline-none"
             />
           </div>
 
@@ -201,7 +201,7 @@ const ChatInput = ({
             type="button"
             onClick={startRecording}
             disabled={isSending}
-            className="px-4 py-3 rounded-lg font-semibold shadow-card transition-all duration-200 bg-surface-600 text-white hover:bg-surface-500 disabled:opacity-50"
+            className="px-4 py-3 rounded-lg font-semibold shadow-card transition-all duration-200 bg-surface-300 dark:bg-surface-600 text-surface-900 dark:text-white hover:bg-surface-400 dark:hover:bg-surface-500 disabled:opacity-50"
             title="Record voice note"
           >
             🎤
@@ -212,7 +212,7 @@ const ChatInput = ({
             disabled={isSending || !message.trim()}
             className={`px-6 py-3 rounded-lg font-semibold shadow-card transition-all duration-200 flex items-center gap-2 ${
               isSending || !message.trim()
-                ? 'bg-surface-600 text-surface-400 cursor-not-allowed'
+                ? 'bg-surface-300 dark:bg-surface-600 text-surface-600 dark:text-surface-400 cursor-not-allowed'
                 : 'bg-primary-600 text-white hover:bg-primary-500'
             }`}
           >

@@ -15,12 +15,12 @@ const Loader = () => {
   }, [navigate]);
 
   return (
-    <div className="bg-surface-900 h-screen flex items-center justify-center">
+    <div className="bg-surface-50 dark:bg-surface-900 h-screen flex items-center justify-center">
       <section className="text-center">
         {myLoader && (
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-surface-300 text-lg font-semibold">
+            <p className="text-surface-600 dark:text-surface-300 text-lg font-semibold">
               Loading CaptainChat...
             </p>
           </div>

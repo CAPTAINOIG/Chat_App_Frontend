@@ -15,24 +15,24 @@ const Profile = ({
     <div className="w-full h-full">
       <div
         onClick={() => setViewImage(image || user)}
-        className="w-full h-64 bg-gray-700 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+        className="w-full h-64 bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
       >
         <img
           src={image || user}
           alt="Profile"
-          className="w-40 h-40 rounded-full border-4 border-white/20 shadow-lg object-cover"
+          className="w-40 h-40 rounded-full border-4 border-white/20 dark:border-white/20 shadow-lg object-cover"
         />
       </div>
       <div className="p-6">
-        <h2 className="text-2xl font-bold text-white mb-1">
+        <h2 className="text-2xl font-bold text-surface-900 dark:text-white mb-1">
           {selectedUser?.username}
         </h2>
-        <p className="text-sm text-surface-300 mb-6">
+        <p className="text-sm text-surface-600 dark:text-surface-300 mb-6">
           {selectedUser?.number || "Not provided"}
         </p>
-        <div className="border-b border-surface-700 pb-4 mb-6">
-          <p className="text-xs text-surface-400 uppercase tracking-wider mb-2">About</p>
-          <p className="text-surface-200 text-sm">
+        <div className="border-b border-surface-200 dark:border-surface-700 pb-4 mb-6">
+          <p className="text-xs text-surface-500 dark:text-surface-400 uppercase tracking-wider mb-2">About</p>
+          <p className="text-surface-800 dark:text-surface-200 text-sm">
             {selectedUser?.aboutMe || "Hey there! I'm using this app."}
           </p>
         </div>
@@ -41,10 +41,10 @@ const Profile = ({
             <button
               key={index}
               onClick={() => setProfile(item.text.toLowerCase())}
-              className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left hover:bg-surface-700 transition-colors"
+              className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors"
             >
-              <span className="text-2xl text-surface-300">{item.icon}</span>
-              <span className="text-surface-100 font-medium">{item.text}</span>
+              <span className="text-2xl text-surface-600 dark:text-surface-300">{item.icon}</span>
+              <span className="text-surface-900 dark:text-surface-100 font-medium">{item.text}</span>
             </button>
           ))}
         </div>

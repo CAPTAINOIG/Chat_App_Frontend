@@ -167,10 +167,10 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
         onClick={() => handleAction(selectedUser)}
       >
         {loading ? (
-          <div className="w-14 h-14 rounded-full border-4 border-white bg-gray-300 animate-pulse"></div>
+          <div className="w-14 h-14 rounded-full border-4 border-white dark:border-surface-900 bg-gray-300 dark:bg-gray-700 animate-pulse"></div>
         ) : (
           <img
-            className="w-14 h-14 rounded-full border-4 border-white object-cover"
+            className="w-14 h-14 rounded-full border-4 border-white dark:border-surface-900 object-cover"
             src={image || user1}
             alt="Profile"
           />
@@ -191,18 +191,18 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
-          className="absolute top-16 left-0 z-50 w-48 bg-surface-800 shadow-xl rounded-lg border border-surface-700"
+          className="absolute top-16 left-0 z-50 w-48 bg-white dark:bg-surface-800 shadow-xl rounded-lg border border-surface-200 dark:border-surface-700"
         >
           <button
             onClick={() => document.getElementById("avatarInput").click()}
-            className="flex items-center w-full px-4 py-3 text-surface-200 hover:bg-primary-600 rounded-t-lg transition-colors"
+            className="flex items-center w-full px-4 py-3 text-surface-900 dark:text-surface-200 hover:bg-primary-600 rounded-t-lg transition-colors"
           >
             <FontAwesomeIcon icon={faEdit} className="mr-2" /> Change Image
           </button>
 
           <button
             onClick={handleRemoveImage}
-            className="flex items-center w-full px-4 py-3 text-red-400 hover:bg-surface-700 rounded-b-lg transition-colors"
+            className="flex items-center w-full px-4 py-3 text-red-400 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-b-lg transition-colors"
           >
             <FontAwesomeIcon icon={faTrash} className="mr-2" /> Remove Image
           </button>
@@ -216,9 +216,10 @@ const ProfilePic = ({ selectedUser, setImage, image, accountOwner }) => {
         open={drawerOpen}
         width={400}
         styles={{
-          body: { padding: 0, backgroundColor: 'rgb(30 41 59)' },
-          header: { backgroundColor: 'rgb(30 41 59)', color: 'white', borderBottom: '1px solid rgb(51 65 85)' }
+          body: { padding: 0, backgroundColor: '#fff' },
+          header: { backgroundColor: '#fff', color: '#1f2937', borderBottom: '1px solid #e5e7eb' }
         }}
+        rootClassName="dark:[&_.ant-drawer-body]:bg-surface-800 dark:[&_.ant-drawer-header]:bg-surface-800 dark:[&_.ant-drawer-title]:text-white dark:[&_.ant-drawer-header]:border-surface-700"
       >
         {profile === 'home' && (<Profile data={data} profile={profile} setProfile={setProfile} viewImage={viewImage} setViewImage={setViewImage} image={image} user={user} selectedUser={selectedUser} onBack={() => setProfile("home")} />)}
       </Drawer>

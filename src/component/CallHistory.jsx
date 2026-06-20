@@ -150,11 +150,11 @@ const CallHistory = ({ userId }) => {
 
   if (loading) {
     return (
-      <div className="p-6 bg-surface-800 rounded-lg">
-        <h3 className="text-lg font-semibold text-surface-50 mb-4">Call History</h3>
+      <div className="p-6 bg-white dark:bg-surface-800 rounded-lg">
+        <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-4">Call History</h3>
         <div className="flex items-center justify-center py-8">
           <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-3 text-surface-400">Loading call history...</span>
+          <span className="ml-3 text-surface-600 dark:text-surface-400">Loading call history...</span>
         </div>
       </div>
     );
@@ -162,8 +162,8 @@ const CallHistory = ({ userId }) => {
 
   if (error) {
     return (
-      <div className="p-6 bg-surface-800 rounded-lg">
-        <h3 className="text-lg font-semibold text-surface-50 mb-4">Call History</h3>
+      <div className="p-6 bg-white dark:bg-surface-800 rounded-lg">
+        <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-4">Call History</h3>
         <div className="text-center py-8">
           <p className="text-red-400 mb-2">{error}</p>
           <button 
@@ -178,9 +178,9 @@ const CallHistory = ({ userId }) => {
   }
 
   return (
-    <div className="p-6 bg-surface-800 rounded-lg">
+    <div className="p-6 bg-white dark:bg-surface-800 rounded-lg">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-surface-50">Call History</h3>
+        <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-50">Call History</h3>
         <button
           onClick={fetchCallHistory}
           className="text-sm text-primary-500 hover:text-primary-400 transition-colors"
@@ -191,10 +191,10 @@ const CallHistory = ({ userId }) => {
 
       {callHistory.length === 0 ? (
         <div className="text-center py-8">
-          <div className="w-12 h-12 mx-auto mb-3 bg-surface-700 rounded-full flex items-center justify-center">
-            <FaPhone className="text-surface-400" />
+          <div className="w-12 h-12 mx-auto mb-3 bg-surface-200 dark:bg-surface-700 rounded-full flex items-center justify-center">
+            <FaPhone className="text-surface-500 dark:text-surface-400" />
           </div>
-          <p className="text-surface-400 text-sm">No calls yet</p>
+          <p className="text-surface-600 dark:text-surface-400 text-sm">No calls yet</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -202,10 +202,10 @@ const CallHistory = ({ userId }) => {
             <div 
               key={call.callId} 
               className={`
-                flex items-center gap-4 p-3 rounded-lg border transition-colors hover:bg-surface-700/50
+                flex items-center gap-4 p-3 rounded-lg border transition-colors hover:bg-surface-100 dark:hover:bg-surface-700/50
                 ${call.status === 'missed' 
                   ? 'border-red-500/30 bg-red-500/5' 
-                  : 'border-surface-600 bg-surface-900/30'
+                  : 'border-surface-300 dark:border-surface-600 bg-surface-50 dark:bg-surface-900/30'
                 }
               `}
             >
@@ -217,7 +217,7 @@ const CallHistory = ({ userId }) => {
               {/* Call Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="font-medium text-surface-50 truncate">
+                  <p className="font-medium text-surface-900 dark:text-surface-50 truncate">
                     {call.participantName}
                   </p>
                   {call.status === 'missed' && (
@@ -226,10 +226,10 @@ const CallHistory = ({ userId }) => {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-surface-400 mb-1">
+                <p className="text-sm text-surface-600 dark:text-surface-400 mb-1">
                   {getCallStatusText(call)}
                 </p>
-                <div className="flex items-center gap-3 text-xs text-surface-500">
+                <div className="flex items-center gap-3 text-xs text-surface-500 dark:text-surface-500">
                   <span>{formatTime(call.startTime)}</span>
                   {call.duration > 0 && (
                     <>

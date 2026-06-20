@@ -58,7 +58,7 @@ const MessageList = ({
         ))
       ) : (
         <div className="flex items-center justify-center h-64">
-          <p className="text-surface-400 text-center">
+          <p className="text-surface-600 dark:text-surface-400 text-center">
             No messages yet. Start the conversation!
           </p>
         </div>

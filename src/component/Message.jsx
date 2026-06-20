@@ -131,17 +131,17 @@ const Message = ({
     <div className={`flex group mb-2 px-1 sm:px-2 mt-20 ${isSender ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`
-          relative p-2 sm:p-3 rounded-2xl max-w-[85%] sm:max-w-[70%] min-w-[120px] shadow-md
+          relative p-2 sm:p-3 rounded-2xl max-w-[85%] sm:max-w-[70%] min-w-[120px] shadow-sm
           ${isSender
-            ? 'bg-surface-800/95 text-white'
-            : 'bg-surface-700 text-surface-50'
+            ? 'bg-whatsapp-sent text-whatsapp-text dark:bg-surface-800/95 dark:text-surface-50'
+            : 'bg-whatsapp-received text-whatsapp-text dark:bg-surface-700 dark:text-surface-50'
           }
         `}
         style={{
-          borderBottomLeftRadius: isSender ? "20px" : "5px",
-          borderBottomRightRadius: isSender ? "5px" : "20px",
-          borderTopLeftRadius: "20px",
-          borderTopRightRadius: "20px",
+          borderBottomLeftRadius: isSender ? "8px" : "0",
+          borderBottomRightRadius: isSender ? "0" : "8px",
+          borderTopLeftRadius: "8px",
+          borderTopRightRadius: "8px",
         }}
       >
         <div className="flex gap-1 sm:gap-2 items-start px-1">
@@ -149,7 +149,11 @@ const Message = ({
             <div className="flex items-center gap-3 w-full">
               <button
                 onClick={togglePlay}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all flex-shrink-0"
+                className={`flex items-center justify-center w-10 h-10 rounded-full transition-all flex-shrink-0 ${
+                  isSender
+                    ? 'bg-primary-600 hover:bg-primary-500 text-white dark:bg-white/20 dark:hover:bg-white/30 dark:text-white'
+                    : 'bg-primary-600 hover:bg-primary-500 text-white dark:bg-white/20 dark:hover:bg-white/30 dark:text-white'
+                }`}
               >
                 {isPlaying ? (
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -172,7 +176,9 @@ const Message = ({
                         className="w-1 rounded-full"
                         style={{
                           height: `${bar.height}px`,
-                          backgroundColor: isActive ? 'white' : 'rgba(255, 255, 255, 0.4)',
+                          backgroundColor: isActive
+                            ? (isSender ? 'white' : '#6366f1')
+                            : (isSender ? 'rgba(255, 255, 255, 0.4)' : 'rgba(99, 102, 241, 0.4)'),
                           animation: isPlaying ? `wave-${index % 2} 0.5s ease-in-out infinite` : 'none',
                           animationDelay: `${index * 0.03}s`,
                         }}
@@ -181,7 +187,7 @@ const Message = ({
                   })}
                   <div> 
                     <img
-                    className="w-10 h-10 rounded-full border-4 border-white object-cover"
+                    className="w-10 h-10 rounded-full border-4 border-white dark:border-surface-900 object-cover"
                     src={user?.profilePicture || user1}
                     alt="Profile"
                   />
@@ -222,8 +228,11 @@ const Message = ({
         {msg.replyTo && (
           <div
             onClick={() => scrollToMessage(msg?._id)}
-            className={`reply-info p-2 border-l-4 ${isSender ? 'border-accent-400 bg-primary-700' : 'border-primary-400 bg-surface-800'
-              } text-sm mb-2 mt-2 rounded cursor-pointer hover:opacity-80 transition-opacity`}
+            className={`reply-info p-2 border-l-4 text-sm mb-2 mt-2 rounded cursor-pointer hover:opacity-80 transition-opacity ${
+              isSender
+                ? 'border-accent-400 bg-primary-700 dark:bg-primary-700'
+                : 'border-primary-400 bg-surface-100 dark:bg-surface-800'
+            }`}
           >
             <span className="opacity-70">Replying to:</span> <span className="font-semibold">{msg?.replyTo}</span>
           </div>
@@ -236,7 +245,7 @@ const Message = ({
               absolute top-1 p-2 rounded-full cursor-pointer transition-all duration-200 z-10
               sm:opacity-0 sm:group-hover:opacity-100 opacity-70 hover:opacity-100 hover:scale-110
               ${isSender
-                ? '-left-11 sm:-left-12 bg-surface-700 hover:bg-surface-600 text-surface-200'
+                ? '-left-11 sm:-left-12 bg-surface-700 hover:bg-surface-600 text-surface-200 dark:bg-surface-700 dark:hover:bg-surface-600'
                 : '-right-11 sm:-right-12 bg-primary-600 hover:bg-primary-500 text-white'
               }
               shadow-lg
@@ -254,7 +263,7 @@ const Message = ({
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.2 }}
             className={`
-              absolute z-30 min-w-[160px] bg-surface-800/95 backdrop-blur-md border border-surface-600/50 
+              absolute z-30 min-w-[160px] bg-white dark:bg-surface-800/95 backdrop-blur-md border border-surface-200 dark:border-surface-600/50 
               rounded-xl shadow-2xl overflow-hidden
               ${isSender
                 ? 'right-0 top-full mt-2'
@@ -269,13 +278,13 @@ const Message = ({
               return (
                 <div
                   key={index}
-                  className={`flex items-center space-x-3 px-4 py-3 transition-colors text-surface-50 text-sm border-b border-surface-700/30 last:border-b-0 ${isActionLoading
+                  className={`flex items-center space-x-3 px-4 py-3 transition-colors text-sm border-b border-surface-100 dark:border-surface-700/30 last:border-b-0 ${isActionLoading
                       ? 'cursor-not-allowed opacity-50'
-                      : 'cursor-pointer hover:bg-surface-700/80'
+                      : 'cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-700/80 text-surface-900 dark:text-surface-50'
                     }`}
                   onClick={() => !isActionLoading && handleAction(item?.text, msg.content, msg?.messageId, msg?.receiverId, msg?.senderId)}
                 >
-                  <span className="text-surface-400 flex-shrink-0">
+                  <span className="text-surface-600 dark:text-surface-400 flex-shrink-0">
                     {isActionLoading ? (
                       <div className="w-4 h-4 border-2 border-surface-400 border-t-transparent rounded-full animate-spin"></div>
                     ) : (

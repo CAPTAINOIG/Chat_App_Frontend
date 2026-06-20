@@ -223,16 +223,18 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
   }, []);
 
   return (
-    <div className="h-full flex flex-col p-3 sm:p-4 overflow-y-auto">
-      <h2 className="text-lg sm:text-xl font-bold mb-4 text-surface-50 bg-surface-900 border border-surface-700 rounded-lg p-3">
-        Conversations
-      </h2>
-      <div className="space-y-2 flex-1">
+    <div className="h-full flex flex-col overflow-y-auto bg-white dark:bg-surface-900">
+      <div className="p-3 sm:p-4 border-b border-surface-200 dark:border-surface-700">
+        <h2 className="text-lg sm:text-xl font-bold text-whatsapp-text dark:text-surface-50">
+          Conversations
+        </h2>
+      </div>
+      <div className="flex-1">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-surface-400 text-sm">Loading users...</p>
+              <p className="text-whatsapp-secondary dark:text-surface-400 text-sm">Loading users...</p>
             </div>
           </div>
         ) : users.length > 0 ? (
@@ -254,7 +256,7 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
             return (
               <div
                 key={i}
-                className="p-3 cursor-pointer hover:bg-primary-600 hover:text-white text-surface-200 rounded-lg bg-surface-900 border border-surface-700 transition-all"
+                className="p-3 cursor-pointer hover:bg-surface-100 text-whatsapp-text dark:text-surface-200 dark:hover:bg-surface-800 transition-all border-b border-surface-100 dark:border-surface-700"
                 onClick={() => {
                   handleUserClick(item);
                   resetUnread(item._id || item.id);
@@ -270,26 +272,26 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                       />
                     ) : (
                       <img
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-surface-600 object-cover"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-surface-300 dark:border-surface-600 object-cover"
                         src={user}
                         alt="Profile"
                       />
                     )}
-                    {item.online && item.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-accent-400 border-2 border-surface-900 rounded-full"></span>
+                    {item.online && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-accent-400 border-2 border-white dark:border-surface-900 rounded-full"></span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between w-full">
-                      <span className="font-medium text-sm sm:text-base truncate block">
+                      <span className="font-medium text-sm sm:text-base truncate block text-whatsapp-text dark:text-surface-50">
                         {item?.username || "Unknown User"}
                       </span>
-                      <span className="text-xs text-surface-400 ml-2">
+                      <span className="text-xs text-whatsapp-secondary dark:text-surface-400 ml-2">
                         {formatMessageTime()}
                       </span>
                     </div>
                     <div className="flex items-center justify-between w-full">
-                      <span className="text-xs text-surface-400 truncate">
+                      <span className="text-xs text-whatsapp-secondary dark:text-surface-400 truncate">
                         {formatLastMessage()}
                       </span>
                       {unread > 0 && (
@@ -305,20 +307,20 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
           })
         ) : (
           <div className="flex items-center justify-center py-8">
-            <p className="text-center text-surface-500 text-sm">No users available</p>
+            <p className="text-center text-whatsapp-secondary dark:text-surface-500 text-sm">No users available</p>
           </div>
         )}
       </div>
 
       {/* Profile Button - Fixed at bottom */}
-      <div className="mt-4 pt-4 border-t border-surface-700">
+      <div className="p-3 border-t border-surface-200 dark:border-surface-700">
         <div
           onClick={handleAction}
-          className="flex items-center gap-3 p-3 rounded-lg border-2 border-primary-500 cursor-pointer hover:border-primary-400 transition-colors bg-surface-900/50"
+          className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
         >
           <div className="relative flex-shrink-0">
             {loading ? (
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-4 border-primary-500 bg-surface-700 animate-pulse"></div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-4 border-primary-500 bg-surface-200 dark:bg-surface-700 animate-pulse"></div>
             ) : image ? (
               <img
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
@@ -334,10 +336,10 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <span className="font-medium text-surface-50 text-sm sm:text-base truncate block">
+            <span className="font-medium text-whatsapp-text dark:text-surface-50 text-sm sm:text-base truncate block">
               {accountOwner?.username || "Your Profile"}
             </span>
-            <span className="text-xs text-surface-400">Tap to edit profile</span>
+            <span className="text-xs text-whatsapp-secondary dark:text-surface-400">Tap to edit profile</span>
           </div>
         </div>
       </div>
@@ -348,18 +350,18 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
-          className="fixed top-20 left-4 right-4 md:left-4 md:right-auto md:w-[700px] z-50 bg-surface-800 shadow-2xl rounded-2xl border border-surface-700 max-h-[85vh] overflow-y-auto"
+          className="fixed top-20 left-4 right-4 md:left-4 md:right-auto md:w-[700px] z-50 bg-white dark:bg-surface-800 shadow-2xl rounded-2xl border border-surface-200 dark:border-surface-700 max-h-[85vh] overflow-y-auto"
           ref={dropdownRef}
         >
           <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-0 h-full">
-            <div className="bg-surface-900 rounded-l-2xl p-4 border-r border-surface-700 flex flex-col gap-1">
+            <div className="bg-surface-100 dark:bg-surface-900 rounded-l-2xl p-4 border-r border-surface-200 dark:border-surface-700 flex flex-col gap-1">
               {data?.map((item, index) => (
                 <div
                   key={index}
                   className={`flex items-center space-x-3 p-3 cursor-pointer rounded-lg transition-colors mb-1 ${
                     profile === item.goto 
                       ? 'bg-primary-600 text-white' 
-                      : 'text-surface-200 hover:bg-primary-600/50 hover:text-white'
+                      : 'text-surface-900 dark:text-surface-200 hover:bg-primary-600/50 hover:text-white'
                   }`}
                   onClick={() => setProfile(item?.goto)}
                 >
@@ -388,7 +390,7 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                           />
                         ) : (
                           <img
-                            className="w-32 h-32 rounded-full object-cover border-4 border-surface-600 shadow-lg"
+                            className="w-32 h-32 rounded-full object-cover border-4 border-surface-300 dark:border-surface-600 shadow-lg"
                             src={user}
                             alt="Profile"
                           />
@@ -405,7 +407,7 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                       </div>
                     </div>
                     <div className="mb-4">
-                      <label className="text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
+                      <label className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
                         Display Name
                       </label>
                       <AnimatePresence mode="wait">
@@ -415,7 +417,7 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             required
-                            className="w-full border border-surface-600 bg-surface-900 text-surface-50 text-base py-2 px-3 rounded-lg focus:border-primary-500 transition-colors"
+                            className="w-full border border-surface-300 dark:border-surface-600 bg-surface-100 dark:bg-surface-900 text-surface-900 dark:text-surface-50 text-base py-2 px-3 rounded-lg focus:border-primary-500 transition-colors"
                             value={profileName}
                             onChange={(e) => setProfileName(e.target.value)}
                             onBlur={handleUpdate}
@@ -431,9 +433,9 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                               setIsEditing(true);
                               setEditingField("profileName");
                             }}
-                            className="flex items-center justify-between border border-transparent hover:border-surface-600 py-2 px-3 rounded-lg cursor-pointer group"
+                            className="flex items-center justify-between border border-transparent hover:border-surface-300 dark:hover:border-surface-600 py-2 px-3 rounded-lg cursor-pointer group"
                           >
-                            <p className="text-surface-50 font-medium">
+                            <p className="text-surface-900 dark:text-surface-50 font-medium">
                               {profileName || "Enter your name"}
                             </p>
                             <AiOutlineEdit className="text-surface-500 group-hover:text-primary-400 transition-colors" />
@@ -443,7 +445,7 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                     </div>
 
                     <div className="mb-4">
-                      <label className="text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
+                      <label className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
                         About
                       </label>
                       <AnimatePresence mode="wait">
@@ -452,7 +454,7 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="w-full h-24 rounded-lg p-3 border border-surface-600 bg-surface-900 text-surface-50 focus:border-primary-500 transition-colors resize-none"
+                            className="w-full h-24 rounded-lg p-3 border border-surface-300 dark:border-surface-600 bg-surface-100 dark:bg-surface-900 text-surface-900 dark:text-surface-50 focus:border-primary-500 transition-colors resize-none"
                             placeholder="Write something about yourself..."
                             value={aboutMe}
                             onChange={(e) => setAboutMe(e.target.value)}
@@ -468,9 +470,9 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                               setIsEditing(true);
                               setEditingField("aboutMe");
                             }}
-                            className="border border-transparent hover:border-surface-600 py-2 px-3 rounded-lg cursor-pointer min-h-[60px]"
+                            className="border border-transparent hover:border-surface-300 dark:hover:border-surface-600 py-2 px-3 rounded-lg cursor-pointer min-h-[60px]"
                           >
-                            <p className="text-surface-300 text-sm">
+                            <p className="text-surface-600 dark:text-surface-300 text-sm">
                               {aboutMe || "Write something about yourself..."}
                             </p>
                           </motion.div>
@@ -479,15 +481,15 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                     </div>
                     {accountOwner?.number && (
                       <div className="mb-6">
-                        <label className="text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
+                        <label className="text-surface-600 dark:text-surface-400 text-xs font-semibold uppercase tracking-wide mb-2 block">
                           Phone Number
                         </label>
-                        <p className="text-surface-50 font-medium py-2 px-3">
+                        <p className="text-surface-900 dark:text-surface-50 font-medium py-2 px-3">
                           {accountOwner.number}
                         </p>
                       </div>
                     )}
-                    <div className="border-t border-surface-700 my-4"></div>
+                    <div className="border-t border-surface-200 dark:border-surface-700 my-4"></div>
                     <button
                       onClick={handleLogOut}
                       className="w-full text-white bg-red-600 hover:bg-red-500 focus:ring-4 focus:outline-none focus:ring-red-800 font-semibold rounded-lg text-sm px-5 py-3 text-center transition-colors shadow-md"
@@ -499,12 +501,12 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="absolute top-48 left-1/2 transform -translate-x-1/2 bg-surface-800 border border-surface-600 rounded-xl shadow-2xl w-56 overflow-hidden z-[60]"
+                        className="absolute top-48 left-1/2 transform -translate-x-1/2 bg-white dark:bg-surface-800 border border-surface-300 dark:border-surface-600 rounded-xl shadow-2xl w-56 overflow-hidden z-[60]"
                         ref={dropdownRef}
                       >
                         <button
                           onClick={() => document.getElementById("avatarInput").click()}
-                          className="flex items-center gap-3 text-accent-400 hover:bg-surface-700 hover:text-white w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium"
+                          className="flex items-center gap-3 text-accent-400 hover:bg-surface-200 dark:hover:bg-surface-700 hover:text-white w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium"
                         >
                           <FontAwesomeIcon icon={faEdit} className="text-base" />
                           <span>Change Image</span>
@@ -518,14 +520,14 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
                         />
                         <button
                           onClick={handleRemoveImage}
-                          className="flex items-center gap-3 text-orange-400 hover:text-white hover:bg-surface-700 w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium border-t border-surface-700"
+                          className="flex items-center gap-3 text-orange-400 hover:text-white hover:bg-surface-200 dark:hover:bg-surface-700 w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium border-t border-surface-200 dark:border-surface-700"
                         >
                           <FontAwesomeIcon icon={faTrash} className="text-base" />
                           <span>Remove Image</span>
                         </button>
                         <button
                           onClick={handleViewImage}
-                          className="flex items-center gap-3 text-primary-400 hover:text-white hover:bg-surface-700 w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium border-t border-surface-700"
+                          className="flex items-center gap-3 text-primary-400 hover:text-white hover:bg-surface-200 dark:hover:bg-surface-700 w-full py-3 px-4 cursor-pointer transition-colors text-sm font-medium border-t border-surface-200 dark:border-surface-700"
                         >
                           <FontAwesomeIcon icon={faEye} className="text-base" />
                           <span>View Image</span>

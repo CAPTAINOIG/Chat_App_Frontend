@@ -14,24 +14,53 @@
 
 body {
   font-family: 'Inter', 'Mirza', sans-serif;
-  background-color: #0f172a;
-  color: #f1f5f9;
+}
+
+/* Light theme */
+:root {
+  --bg-color: #f0f2f5;
+  --text-color: #111b21;
+  --chat-bg: #efeae2;
+  --sidebar-bg: #f0f2f5;
+  --sent-message-bg: #d9fdd3;
+  --received-message-bg: #ffffff;
+}
+
+/* Dark theme */
+.dark {
+  --bg-color: #0f172a;
+  --text-color: #f1f5f9;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 /* ── Chat background ── */
 .background {
+  background: var(--chat-bg);
+  background-image: radial-gradient(circle at 20px 20px, rgba(200,200,200,0.2) 1px, transparent 0);
+  background-size: 40px 40px;
+  position: relative;
+}
+
+.background::before {
+  content: none;
+}
+
+.dark .background {
   background-image: url(./assets/image/chat.jpeg);
   background-position: center;
-  position: relative;
   background-repeat: no-repeat;
   background-size: cover;
 }
 
-.background::before {
+.dark .background::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(15, 23, 42, 0.55); /* Dark mode overlay */
   pointer-events: none;
 }
 
@@ -47,21 +76,29 @@ body {
   width: 6px;
 }
 
+/* Light scrollbar */
 #scroll-container::-webkit-scrollbar-track,
 #message-container::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #e2e8f0;
   border-radius: 4px;
 }
 
 #scroll-container::-webkit-scrollbar-thumb,
 #message-container::-webkit-scrollbar-thumb {
-  background: #4f46e5;
+  background: #6366f1;
   border-radius: 4px;
 }
 
 #scroll-container::-webkit-scrollbar-thumb:hover,
 #message-container::-webkit-scrollbar-thumb:hover {
-  background: #6366f1;
+  background: #4f46e5;
+}
+
+/* Dark scrollbar */
+.dark #scroll-container::-webkit-scrollbar-track,
+.dark #message-container::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
 }
 
 .scroll {
@@ -87,6 +124,25 @@ body {
   background: #1e293b !important;
   border: 1px solid #6366f1 !important;
   color: #c7d2fe !important;
+}
+
+/* Light sonner toasts */
+:root [data-sonner-toast][data-type='error'] {
+  background: #fef2f2 !important;
+  border: 1px solid #ef4444 !important;
+  color: #dc2626 !important;
+}
+
+:root [data-sonner-toast][data-type='success'] {
+  background: #f0fdfa !important;
+  border: 1px solid #14b8a6 !important;
+  color: #0d9488 !important;
+}
+
+:root [data-sonner-toast][data-type='info'] {
+  background: #eef2ff !important;
+  border: 1px solid #6366f1 !important;
+  color: #4f46e5 !important;
 }
 
 /* ── Input focus ring ── */

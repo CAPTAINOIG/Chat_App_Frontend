@@ -6,18 +6,16 @@ import socketService from "../../services/socket.service";
 
 const General = ({ onBack }) => {
   const showOnline = useUserStore((state)=> state.showOnline);
-  console.log(showOnline)
   const setShowOnline = useUserStore((state)=> state.setShowOnline);
+  const theme = useUserStore((state) => state.theme)
+  const setTheme = useUserStore((state) => state.setTheme)
 
   const handleShowOnlineToggle = (status) => {
     setShowOnline(status);
     socketService.updateShowOnline(status);
-  //    updateProfile({
-  //   showOnline: status
-  // });
   };
 
-  const [theme, setTheme] = useState("dark");
+  // const [theme, setTheme] = useState("dark");
   const [enterKey, setEnterKey] = useState(false);
       
 
@@ -46,14 +44,14 @@ const General = ({ onBack }) => {
   return (
     <div className="w-full h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-surface-700 bg-surface-800">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800">
         <button
           onClick={onBack}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-700 text-white transition-colors"
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-900 dark:text-white transition-colors"
         >
           <HiChevronLeft size="24" />
         </button>
-        <h2 className="text-xl font-semibold text-white">General</h2>
+        <h2 className="text-xl font-semibold text-surface-900 dark:text-white">General</h2>
       </div>
 
       <div className="p-6 space-y-6">
@@ -63,8 +61,8 @@ const General = ({ onBack }) => {
             className="flex items-center justify-between py-2"
           >
             <div>
-              <h3 className="text-white font-medium">{setting.title}</h3>
-              <p className="text-sm text-surface-400 mt-1">
+              <h3 className="text-surface-900 dark:text-white font-medium">{setting.title}</h3>
+              <p className="text-sm text-surface-600 dark:text-surface-400 mt-1">
                 {setting.description}
               </p>
             </div>
@@ -79,7 +77,7 @@ const General = ({ onBack }) => {
               <select
                 value={setting.value}
                 onChange={(e) => setting.onChange(e.target.value)}
-                className="bg-surface-700 text-white border border-surface-600 rounded-lg px-3 py-1"
+                className="bg-surface-200 dark:bg-surface-700 text-surface-900 dark:text-white border border-surface-300 dark:border-surface-600 rounded-lg px-3 py-1"
               >
                 {setting.options.map((opt, i) => (
                   <option key={i} value={opt} className="capitalize">

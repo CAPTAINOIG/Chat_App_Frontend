@@ -75,43 +75,43 @@ const Signin = () => {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-900 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-900 p-6">
       <Toaster position="top-center" />
-      <div className="bg-surface-800 p-8 text-surface-50 rounded-2xl shadow-card border border-surface-700 w-full max-w-md">
+      <div className="bg-white dark:bg-surface-800 p-8 text-surface-900 dark:text-surface-50 rounded-2xl shadow-card border border-surface-200 dark:border-surface-700 w-full max-w-md">
         <h2 className="text-3xl font-bold mb-6 text-center">Welcome Back</h2>
         {error && (
-          <div className="bg-red-900/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
         <form onSubmit={formik.handleSubmit}>
           <div className="mb-5">
-            <label htmlFor="email" className="block font-semibold mb-2 text-sm text-surface-300">
+            <label htmlFor="email" className="block font-semibold mb-2 text-sm text-surface-600 dark:text-surface-300">
               Email Address
             </label>
             <input
               type="email"
               placeholder="jane@example.com"
-              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
+              className="px-4 py-3 w-full bg-surface-100 dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg text-surface-900 dark:text-surface-50 placeholder-surface-400 dark:placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="email"
               onBlur={formik.handleBlur}
               onChange={formik.handleChange}
               value={formik.values.email}
             />
             {formik.touched.email && formik.errors.email && (
-              <span className="text-red-400 text-xs mt-1 block">
+              <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">
                 {formik.errors.email}
               </span>
             )}
           </div>
           <div className="mb-5 relative">
-            <label htmlFor="password" className="block font-semibold mb-2 text-sm text-surface-300">
+            <label htmlFor="password" className="block font-semibold mb-2 text-sm text-surface-600 dark:text-surface-300">
               Password
             </label>
             <input
               type={passwordVisible ? "text" : "password"}
               autoComplete="off"
-              className="px-4 py-3 w-full bg-surface-900 border border-surface-600 rounded-lg text-surface-50 placeholder-surface-500 focus:border-primary-500 transition-colors"
+              className="px-4 py-3 w-full bg-surface-100 dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg text-surface-900 dark:text-surface-50 placeholder-surface-400 dark:placeholder-surface-500 focus:border-primary-500 transition-colors"
               name="password"
               placeholder="••••••••"
               onBlur={formik.handleBlur}
@@ -119,13 +119,13 @@ const Signin = () => {
               value={formik.values.password}
             />
             {formik.touched.password && formik.errors.password && (
-              <span className="text-red-400 text-xs mt-1 block">
+              <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">
                 {formik.errors.password}
               </span>
             )}
             <span
               onClick={togglePasswordVisibility}
-              className="absolute top-[42px] right-4 cursor-pointer text-surface-400 hover:text-surface-200"
+              className="absolute top-[42px] right-4 cursor-pointer text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200"
             >
               {!passwordVisible ? (
                 <IoEyeSharp size={20} />
@@ -134,7 +134,7 @@ const Signin = () => {
               )}
             </span>
           </div>
-          <div className="text-right text-sm text-primary-400 hover:text-primary-300 mb-6 cursor-pointer">
+          <div className="text-right text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 mb-6 cursor-pointer">
             <a href="/forgot-password">Forgot Password?</a>
           </div>
           <button
@@ -146,14 +146,14 @@ const Signin = () => {
           </button>
         </form>
         <div className="flex items-center justify-center my-6">
-          <div className="w-full border-t border-surface-700"></div>
-          <span className="px-3 text-surface-500 text-sm">OR</span>
-          <div className="w-full border-t border-surface-700"></div>
+          <div className="w-full border-t border-surface-300 dark:border-surface-700"></div>
+          <span className="px-3 text-surface-500 dark:text-surface-500 text-sm">OR</span>
+          <div className="w-full border-t border-surface-300 dark:border-surface-700"></div>
         </div>
         <GoogleAuth />
-        <p className="text-center text-sm mt-6 text-surface-400">
+        <p className="text-center text-sm mt-6 text-surface-600 dark:text-surface-400">
           New here?{" "}
-          <a href="/signup" className="text-primary-400 hover:text-primary-300 font-semibold">
+          <a href="/signup" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
             Create Account
           </a>
         </p>
