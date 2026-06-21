@@ -2,6 +2,7 @@ import EmojiPicker from "emoji-picker-react";
 import React, { useRef, useState, useEffect } from "react";
 import { FaTrash } from "react-icons/fa";
 import { formatTimey, waveformBars } from "./utils";
+import { useUserStore } from "../store/user";
 
 const ChatInput = ({
   handleSubmit,
@@ -19,6 +20,8 @@ const ChatInput = ({
   receiverId,
 }) => {
   
+  const enterKey = useUserStore((state) => state.enterKey);
+  
   const typingTimeoutRef = useRef(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -28,6 +31,8 @@ const ChatInput = ({
   const [isSendingVoice, setIsSendingVoice] = useState(false);
 
   const handleInputChange = (e) => {
+    if (!e.target.value) return;
+
     setMessage(e.target.value);
     emitTyping();
     if (typingTimeoutRef.current) {
@@ -36,6 +41,16 @@ const ChatInput = ({
     typingTimeoutRef.current = setTimeout(() => {
       emitStopTyping();
     }, 2000);
+  };
+
+  const handleKeyDown = (e) => {
+      if (!enterKey) return;
+    if (e.key === 'Enter' && !e.shiftKey && enterKey) {
+      e.preventDefault();
+      if (handleSubmit) {
+        handleSubmit(e);
+      }
+    }
   };
 
   const startRecording = async () => {
@@ -75,7 +90,6 @@ const ChatInput = ({
       try {
         await sendVoiceMessage(audioBlob, recordingTime, receiverId, replyMessage);
       } catch (error) {
-        console.error("Error sending voice note:", error);
       } finally {
         setIsSendingVoice(false);
         setIsRecording(false);
@@ -112,7 +126,7 @@ const ChatInput = ({
   return (
     <form
       className="p-0"
-      onSubmit={handleSubmit}
+      onSubmit={(e) => e.preventDefault()}
     >
       {isRecording ? (
         <div className="flex items-center justify-between gap-4 bg-surface-100 dark:bg-surface-900 rounded-lg p-4 border border-surface-300 dark:border-surface-700">
@@ -192,8 +206,9 @@ const ChatInput = ({
               type="text"
               value={message}
               onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              className="w-full bg-transparent text-surface-900 dark:text-surface-50 placeholder-surface-600 dark:placeholder-surface-500 outline-none"
+              className="w-full bg-transparent text-surface-900 dark:text-surface-50 placeholder-surface-600 dark:placeholder-surface-500 outline-none focus:outline-none focus:ring-0 focus:border-transparent"
             />
           </div>
 
@@ -208,7 +223,8 @@ const ChatInput = ({
           </button>
           
           <button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             disabled={isSending || !message.trim()}
             className={`px-6 py-3 rounded-lg font-semibold shadow-card transition-all duration-200 flex items-center gap-2 ${
               isSending || !message.trim()

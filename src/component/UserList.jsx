@@ -38,10 +38,13 @@ import Help from "./Userprofile/Help";
 import Chats from "./Userprofile/Chats";
 import Notifications from "./Userprofile/Notifications";
 import VideoAudio from "./Userprofile/VideoAudio";
+import { useUserStore } from "../store/user";
 
 const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) => {
   const { userId, logout } = useAuth();
   const { lastMessageByUser, unreadCounts, resetUnread } = useChatStore();
+  const resetUser = useUserStore((state) => state.resetUser)
+
   const [image, setImage] = useState(null);
   const [openToggle, setOpenToggle] = useState(false);
   const [editToggle, setEditToggle] = useState(false);
@@ -193,6 +196,7 @@ const UserList = ({ users, handleUserClick, accountOwner, isLoading = false }) =
 
   const handleLogOut = () => {
     logout();
+    resetUser()
     navigate("/signin");
   };
 

@@ -9,15 +9,15 @@ const General = ({ onBack }) => {
   const setShowOnline = useUserStore((state)=> state.setShowOnline);
   const theme = useUserStore((state) => state.theme)
   const setTheme = useUserStore((state) => state.setTheme)
-
+  const fontSize = useUserStore((state) => state.fontSize)
+  const setFontSize = useUserStore((state) => state.setFontSize)
+  const enterKey = useUserStore((state) => state.enterKey);
+  const setEnterKey = useUserStore((state) => state.setEnterKey)
+  
   const handleShowOnlineToggle = (status) => {
     setShowOnline(status);
     socketService.updateShowOnline(status);
   };
-
-  // const [theme, setTheme] = useState("dark");
-  const [enterKey, setEnterKey] = useState(false);
-      
 
   const generalSettings = [
     {
@@ -38,6 +38,13 @@ const General = ({ onBack }) => {
       description: "Let others see when you're online",
       toggle: showOnline,
       onChange: handleShowOnlineToggle
+    },
+    {
+      title: "Font Size",
+      description: "Choose a font size",
+      value: fontSize,
+      options: ["small", "medium", "large"],
+      onChange: setFontSize
     }
   ];
 

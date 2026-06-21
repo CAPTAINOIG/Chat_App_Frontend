@@ -16,6 +16,7 @@ import { useUserStore } from './store/user'
 
 function App() {
   const theme = useUserStore((state) => state.theme)
+  const fontSize = useUserStore((state) => state.fontSize)  
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -39,6 +40,16 @@ function App() {
       applyTheme(theme === 'dark')
     }
   }, [theme])
+
+  useEffect(() => {
+    const sizes = {
+      small: "14px",
+      medium: "16px",
+      large: "18px",
+    };
+    document.documentElement.style.fontSize = sizes[fontSize] || "16px";
+  }, [fontSize]);
+  
   
   return (
     <ErrorBoundary>

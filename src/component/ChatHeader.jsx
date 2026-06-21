@@ -6,6 +6,7 @@ import CallButtons from './CallButtons';
 import { formatTime } from './utils';
 import { HiOutlineDotsVertical, HiOutlineUser } from 'react-icons/hi';
 import { AiOutlineAudioMuted } from 'react-icons/ai';
+import { CiSearch } from 'react-icons/ci';
 
   const data = [
     {
@@ -135,12 +136,18 @@ const ChatHeader = ({ selectedUser, image, setImage, pinnedMessage, setPinnedMes
             isOnline={selectedUser.online}
             accountOwner={accountOwner}
           />
-          <div className="relative" ref={menuRef}>
+          <div className="relative flex" ref={menuRef}>
             <button title='Menu'
               onClick={handleMenuToggle}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-900 dark:text-white transition-colors"
             >
               <HiOutlineDotsVertical size={20} />
+            </button>
+            <button title='Menu'
+              onClick={handleMenuToggle}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-900 dark:text-white transition-colors"
+            >
+              <CiSearch size={20} />
             </button>
 
             {/* Menu Dropdown */}
